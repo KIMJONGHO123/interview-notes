@@ -5,6 +5,7 @@
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -73,7 +74,15 @@ create trigger cards_set_updated_at
   before update on public.cards
   for each row execute function public.set_updated_at();
 
+-- ─────────────────────────────── Data API 권한
+-- "Automatically expose new tables" 를 꺼도 동작하도록 명시적으로 부여.
+-- 로그인한 사용자(authenticated)만 접근, 비로그인(anon)은 접근 불가.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.notes, public.cards to authenticated;
+revoke all on public.notes, public.cards from anon;
+
 -- ─────────────────────────────── RLS: 로그인한 본인 데이터만
+-- (select auth.uid()) 형태로 써야 행마다 재계산하지 않아 빠름
 alter table public.notes enable row level security;
 alter table public.cards enable row level security;
 
@@ -85,10 +94,20 @@ begin
     execute format('drop policy if exists "%1$s_insert_own" on public.%1$s', t);
     execute format('drop policy if exists "%1$s_update_own" on public.%1$s', t);
     execute format('drop policy if exists "%1$s_delete_own" on public.%1$s', t);
-    execute format('create policy "%1$s_select_own" on public.%1$s for select using (auth.uid() = user_id)', t);
-    execute format('create policy "%1$s_insert_own" on public.%1$s for insert with check (auth.uid() = user_id)', t);
-    execute format('create policy "%1$s_update_own" on public.%1$s for update using (auth.uid() = user_id) with check (auth.uid() = user_id)', t);
-    execute format('create policy "%1$s_delete_own" on public.%1$s for delete using (auth.uid() = user_id)', t);
+    execute format('create policy "%1$s_select_own" on public.%1$s for select using ((select auth.uid()) = user_id)', t);
+    execute format('create policy "%1$s_insert_own" on public.%1$s for insert with check ((select auth.uid()) = user_id)', t);
+    execute format('create policy "%1$s_update_own" on public.%1$s for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
+    execute format('create policy "%1$s_delete_own" on public.%1$s for delete using ((select auth.uid()) = user_id)', t);
   end loop;
+end;
+$$;
+
+-- "Enable automatic RLS" 옵션이 만든 함수가 API(rpc)로 호출되지 않게 막기 (이벤트 트리거로만 동작하면 됨)
+do $$
+begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname = 'rls_auto_enable') then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
 end;
 $$;
