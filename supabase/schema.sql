@@ -111,3 +111,90 @@ begin
   end if;
 end;
 $$;
+
+-- ─────────────────────────────── v4: 용량 제한 (사용자당 2.8MB + 항목별 글자 수)
+alter table public.notes drop constraint if exists notes_title_len;
+alter table public.notes drop constraint if exists notes_body_len;
+alter table public.notes drop constraint if exists notes_tags_len;
+alter table public.notes add constraint notes_title_len check (char_length(title) <= 200);
+alter table public.notes add constraint notes_body_len check (char_length(body) <= 50000);
+alter table public.notes add constraint notes_tags_len check (cardinality(tags) <= 10);
+
+alter table public.cards drop constraint if exists cards_question_len;
+alter table public.cards drop constraint if exists cards_answer_len;
+alter table public.cards drop constraint if exists cards_project_len;
+alter table public.cards drop constraint if exists cards_tags_len;
+alter table public.cards drop constraint if exists cards_follow_ups_len;
+alter table public.cards add constraint cards_question_len check (char_length(question) <= 1000);
+alter table public.cards add constraint cards_answer_len check (char_length(answer) <= 5000);
+alter table public.cards add constraint cards_project_len check (char_length(project) <= 3000);
+alter table public.cards add constraint cards_tags_len check (cardinality(tags) <= 10);
+alter table public.cards add constraint cards_follow_ups_len check (
+  jsonb_typeof(follow_ups) = 'array' and jsonb_array_length(follow_ups) <= 10 and octet_length(follow_ups::text) <= 30000
+);
+
+create or replace function public.note_bytes(n public.notes)
+returns bigint language sql immutable set search_path = '' as $$
+  select octet_length(n.title)::bigint + octet_length(n.body) + coalesce(octet_length(array_to_string(n.tags, ',')), 0)
+$$;
+
+create or replace function public.card_bytes(c public.cards)
+returns bigint language sql immutable set search_path = '' as $$
+  select octet_length(c.question)::bigint + octet_length(c.answer) + octet_length(c.project)
+       + octet_length(c.follow_ups::text) + coalesce(octet_length(array_to_string(c.tags, ',')), 0)
+$$;
+
+create or replace function public.usage_bytes(uid uuid, skip_id uuid default null)
+returns bigint language sql stable set search_path = '' as $$
+  select coalesce((select sum(public.note_bytes(n)) from public.notes n where n.user_id = uid and n.id is distinct from skip_id), 0)::bigint
+       + coalesce((select sum(public.card_bytes(c)) from public.cards c where c.user_id = uid and c.id is distinct from skip_id), 0)::bigint
+$$;
+
+-- 한도 변경은 여기 숫자만 바꾸면 됨 (2.8 * 1024 * 1024). 앱의 src/lib/limits.ts 도 같이 수정
+create or replace function public.storage_limit_bytes()
+returns bigint language sql immutable set search_path = '' as $$ select 2936012::bigint $$;
+
+create or replace function public.enforce_note_limit()
+returns trigger language plpgsql set search_path = '' as $$
+declare total bigint;
+begin
+  if tg_op = 'UPDATE' and public.note_bytes(new) <= public.note_bytes(old) then return new; end if;
+  total := public.usage_bytes(new.user_id, new.id) + public.note_bytes(new);
+  if total > public.storage_limit_bytes() then
+    raise exception using errcode = 'P0001', message = 'STORAGE_LIMIT', detail = total::text;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.enforce_card_limit()
+returns trigger language plpgsql set search_path = '' as $$
+declare total bigint;
+begin
+  if tg_op = 'UPDATE' and public.card_bytes(new) <= public.card_bytes(old) then return new; end if;
+  total := public.usage_bytes(new.user_id, new.id) + public.card_bytes(new);
+  if total > public.storage_limit_bytes() then
+    raise exception using errcode = 'P0001', message = 'STORAGE_LIMIT', detail = total::text;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists notes_storage_limit on public.notes;
+create trigger notes_storage_limit before insert or update on public.notes
+  for each row execute function public.enforce_note_limit();
+
+drop trigger if exists cards_storage_limit on public.cards;
+create trigger cards_storage_limit before insert or update on public.cards
+  for each row execute function public.enforce_card_limit();
+
+create or replace function public.my_usage()
+returns bigint language sql stable set search_path = '' as $$
+  select public.usage_bytes((select auth.uid()), null)
+$$;
+
+revoke execute on function public.note_bytes(public.notes), public.card_bytes(public.cards),
+  public.usage_bytes(uuid, uuid), public.storage_limit_bytes(), public.my_usage(),
+  public.enforce_note_limit(), public.enforce_card_limit() from public, anon;
+grant execute on function public.note_bytes(public.notes), public.card_bytes(public.cards),
+  public.usage_bytes(uuid, uuid), public.storage_limit_bytes(), public.my_usage() to authenticated;

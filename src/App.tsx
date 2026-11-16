@@ -12,6 +12,7 @@ import { Review } from './components/Review';
 import { ImportPanel } from './components/ImportPanel';
 import { NotesView } from './components/NotesView';
 import { NoteEditor } from './components/NoteEditor';
+import { STORAGE_LIMIT_BYTES, formatMB, friendlyError } from './lib/limits';
 import { Sidebar, type Tab } from './components/Sidebar';
 
 const MOBILE_QUERY = '(max-width: 899px)';
@@ -77,14 +78,17 @@ function Main({ email }: { email: string | null }) {
   /** 모바일에서 사이드바 항목을 고르면 서랍 닫기 */
   const closeDrawer = () => setDrawerOpen(false);
 
+  const [usage, setUsage] = useState<number | null>(null);
+
   const reload = useCallback(async () => {
     try {
-      const [c, n] = await Promise.all([store.cards.list(), store.notes.list()]);
+      const [c, n, u] = await Promise.all([store.cards.list(), store.notes.list(), store.usage().catch(() => null)]);
       setCards(c.sort(byNewest));
       setNotes(n.sort(byNewest));
+      setUsage(u);
       setError(null);
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setLoading(false);
     }
@@ -101,7 +105,8 @@ function Main({ email }: { email: string | null }) {
       await reload();
       return true;
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
+      await reload(); // 일부만 저장됐을 수 있으니 화면을 실제 상태로 맞춤
       return false;
     }
   };
@@ -149,7 +154,7 @@ function Main({ email }: { email: string | null }) {
     const now = new Date().toISOString();
     const updated = { ...card, confidence, lastReviewedAt: now, updatedAt: now };
     setCards((prev) => prev.map((c) => (c.id === card.id ? updated : c)));
-    store.cards.upsertMany([updated]).catch((e) => setError((e as Error).message));
+    store.cards.upsertMany([updated]).catch((e) => setError(friendlyError(e)));
   };
 
   const openNote = (noteId: string) => {
@@ -174,20 +179,40 @@ function Main({ email }: { email: string | null }) {
   const TITLES: Record<Tab, string> = { notes: '개념', list: '카드', review: '복습', import: '가져오기' };
   const pageTitle = tab === 'notes' && selectedNote ? selectedNote.title : TITLES[tab];
 
-  const footer =
-    store.kind === 'local' ? (
-      <span className="pill warn" title="Supabase 환경변수가 없어서 이 브라우저에만 저장됩니다">
-        로컬 모드 · 이 브라우저에만 저장
-      </span>
-    ) : (
-      <div className="row">
-        <span className="muted small sb-email">{email}</span>
+  const usagePct = usage === null ? 0 : Math.min(100, (usage / STORAGE_LIMIT_BYTES) * 100);
+  const usageMeter = usage !== null && (
+    <div className="usage" title="노트와 카드에 저장된 글자 용량">
+      <div className="row small">
+        <span className="muted">저장 공간</span>
         <span className="spacer" />
-        <button className="link small" onClick={() => supabase!.auth.signOut()}>
-          로그아웃
-        </button>
+        <span className={usagePct >= 90 ? 'weak' : 'muted'}>
+          {formatMB(usage)} / {formatMB(STORAGE_LIMIT_BYTES)}
+        </span>
       </div>
-    );
+      <div className={`usage-bar ${usagePct >= 90 ? 'danger' : usagePct >= 70 ? 'warn' : ''}`}>
+        <div style={{ width: `${Math.max(usagePct, usage > 0 ? 1 : 0)}%` }} />
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="stack" style={{ gap: 8 }}>
+      {usageMeter}
+      {store.kind === 'local' ? (
+        <span className="pill warn" title="Supabase 환경변수가 없어서 이 브라우저에만 저장됩니다">
+          로컬 모드 · 이 브라우저에만 저장
+        </span>
+      ) : (
+        <div className="row">
+          <span className="muted small sb-email">{email}</span>
+          <span className="spacer" />
+          <button className="link small" onClick={() => supabase!.auth.signOut()}>
+            로그아웃
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className={`layout ${sidebarHidden ? 'sb-hidden' : ''} ${drawerOpen ? 'drawer-open' : ''}`}>

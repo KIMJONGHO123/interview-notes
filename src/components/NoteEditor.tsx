@@ -3,6 +3,7 @@ import { CONCEPT_PROMPT, hasCardSection, parseCards, splitNote } from '../lib/pa
 import { SAMPLE_CONCEPT } from '../lib/samples';
 import type { Card, Note } from '../types';
 import { Markdown } from './Markdown';
+import { LIMITS, MAX_IMPORT_CARDS } from '../lib/limits';
 
 interface Props {
   note: Note;
@@ -28,9 +29,11 @@ export function NoteEditor({ note, isNew, onSave, onCancel }: Props) {
   }, [body, note.id]);
 
   const finalTitle = title.trim() || parsed?.title || splitNote(body).title;
+  const tooManyCards = (parsed?.cards.length ?? 0) > MAX_IMPORT_CARDS;
+  const bodyTooLong = (parsed ? parsed.body : body).length > LIMITS.noteBody;
 
   function save() {
-    if (!finalTitle) return;
+    if (!finalTitle || tooManyCards || bodyTooLong) return;
     const split = splitNote(body);
     const cardTags = (c: Card) => [...new Set([...c.tags, ...tagList])];
     onSave(
@@ -70,7 +73,7 @@ export function NoteEditor({ note, isNew, onSave, onCancel }: Props) {
 
         <label>
           제목 <span className="muted">(비워두면 본문의 첫 "# 제목" 사용)</span>
-          <input value={title} placeholder={parsed?.title || splitNote(body).title || '예: 트랜잭션 기초'} onChange={(e) => setTitle(e.target.value)} />
+          <input maxLength={LIMITS.noteTitle} value={title} placeholder={parsed?.title || splitNote(body).title || '예: 트랜잭션 기초'} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label>
           태그 <span className="muted">(쉼표로 구분, 함께 만들어지는 카드에도 붙음)</span>
@@ -104,10 +107,22 @@ export function NoteEditor({ note, isNew, onSave, onCancel }: Props) {
           </p>
         )}
 
+        {bodyTooLong && (
+          <p className="notice error">
+            노트 본문은 {LIMITS.noteBody.toLocaleString()}자까지 저장할 수 있어요. (지금{' '}
+            {(parsed ? parsed.body : body).length.toLocaleString()}자)
+          </p>
+        )}
+        {tooManyCards && (
+          <p className="notice error">
+            함께 추가하는 카드는 {MAX_IMPORT_CARDS}개까지예요. 지금 {parsed!.cards.length}개라서 나눠서 추가해 주세요.
+          </p>
+        )}
+
         <div className="row end">
           <span className="spacer" />
           <button onClick={onCancel}>취소</button>
-          <button className="primary" onClick={save} disabled={!finalTitle}>
+          <button className="primary" onClick={save} disabled={!finalTitle || tooManyCards || bodyTooLong}>
             저장
           </button>
         </div>

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { CARD_PROMPT, parseCards } from '../lib/parse';
 import { SAMPLE_TEXT } from '../lib/samples';
 import { LEVEL_LABEL, normalizeCard, type Card, type Note } from '../types';
+import { MAX_IMPORT_CARDS } from '../lib/limits';
 
 interface Props {
   cards: Card[];
@@ -17,7 +18,10 @@ export function ImportPanel({ cards, notes, onImport }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => parseCards(text, { noteId: noteId || null }), [text, noteId]);
 
+  const tooMany = preview.length > MAX_IMPORT_CARDS;
+
   async function addParsed() {
+    if (tooMany) return;
     if (await onImport(preview, [])) {
       setMsg(`${preview.length}개 카드를 추가했어요.`);
       setText('');
@@ -93,10 +97,15 @@ export function ImportPanel({ cards, notes, onImport }: Props) {
           <span className="muted small">인식된 카드 {preview.length}개</span>
           <span className="spacer" />
           <button onClick={() => setText(SAMPLE_TEXT)}>예시 넣기</button>
-          <button className="primary" onClick={addParsed} disabled={preview.length === 0}>
+          <button className="primary" onClick={addParsed} disabled={preview.length === 0 || tooMany}>
             카드로 추가
           </button>
         </div>
+        {tooMany && (
+          <p className="notice error">
+            한 번에 {MAX_IMPORT_CARDS}개까지 추가할 수 있어요. 지금 {preview.length}개라서 나눠서 붙여넣어 주세요.
+          </p>
+        )}
         {preview.length > 0 && (
           <ul className="preview">
             {preview.map((c) => (

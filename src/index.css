@@ -298,3 +298,10 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
   .content { padding: 8px 16px 64px; }
   .topbar { padding: 8px 10px; border-bottom-color: var(--border); }
 }
+
+/* ─── v5: 저장 공간 표시 ─── */
+.usage { display: flex; flex-direction: column; gap: 4px; }
+.usage-bar { height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.usage-bar > div { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+.usage-bar.warn > div { background: var(--mid); }
+.usage-bar.danger > div { background: var(--low); }

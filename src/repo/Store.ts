@@ -11,4 +11,6 @@ export interface Store {
   readonly kind: 'local' | 'supabase';
   cards: Repository<Card>;
   notes: Repository<Note>;
+  /** 내 저장 사용량 (바이트) */
+  usage(): Promise<number>;
 }

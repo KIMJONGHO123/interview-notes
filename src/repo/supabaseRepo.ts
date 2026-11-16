@@ -112,5 +112,10 @@ export function createSupabaseStore(db: SupabaseClient): Store {
     kind: 'supabase',
     cards: new SupabaseRepository<Card, CardRow>(db, 'cards', cardMapper),
     notes: new SupabaseRepository<Note, NoteRow>(db, 'notes', noteMapper),
+    async usage() {
+      const { data, error } = await db.rpc('my_usage');
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
   };
 }

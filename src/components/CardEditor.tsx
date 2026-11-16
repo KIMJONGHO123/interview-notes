@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card, type Confidence, type FollowUp, type Level, type Note } from '../types';
+import { LIMITS } from '../lib/limits';
 
 interface Props {
   card: Card;
@@ -70,11 +71,11 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
         </label>
         <label>
           질문
-          <textarea rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} autoFocus />
+          <textarea rows={2} maxLength={LIMITS.cardQuestion} value={question} onChange={(e) => setQuestion(e.target.value)} autoFocus />
         </label>
         <label>
           내 답변 <span className="muted">(30초 안에 말할 분량으로)</span>
-          <textarea rows={6} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+          <textarea rows={6} maxLength={LIMITS.cardAnswer} value={answer} onChange={(e) => setAnswer(e.target.value)} />
         </label>
         <div className="stack fu-editor">
           <div className="row">
@@ -85,8 +86,8 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
             <div key={i} className="fu-row">
               <div className="fu-num">{i + 1}</div>
               <div className="stack grow">
-                <input placeholder="꼬리질문" value={f.q} onChange={(e) => updateFollowUp(i, { q: e.target.value })} />
-                <textarea rows={2} placeholder="답 (1~2줄)" value={f.a} onChange={(e) => updateFollowUp(i, { a: e.target.value })} />
+                <input maxLength={LIMITS.cardQuestion} placeholder="꼬리질문" value={f.q} onChange={(e) => updateFollowUp(i, { q: e.target.value })} />
+                <textarea rows={2} maxLength={2000} placeholder="답 (1~2줄)" value={f.a} onChange={(e) => updateFollowUp(i, { a: e.target.value })} />
               </div>
               <div className="fu-actions">
                 <button title="위로" disabled={i === 0} onClick={() => moveFollowUp(i, -1)}>
@@ -102,12 +103,12 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
             </div>
           ))}
           <div>
-            <button onClick={() => setFollowUps((list) => [...list, { q: '', a: '' }])}>+ 꼬리질문 추가</button>
+            <button disabled={followUps.length >= LIMITS.followUps} onClick={() => setFollowUps((list) => [...list, { q: '', a: '' }])}>+ 꼬리질문 추가</button>
           </div>
         </div>
         <label>
           내 프로젝트와 연결 <span className="muted">(어디에, 왜 썼는지)</span>
-          <textarea rows={2} value={project} onChange={(e) => setProject(e.target.value)} />
+          <textarea rows={2} maxLength={LIMITS.cardProject} value={project} onChange={(e) => setProject(e.target.value)} />
         </label>
         <label>
           태그 <span className="muted">(쉼표로 구분)</span>
