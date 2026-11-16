@@ -12,8 +12,19 @@ import { Review } from './components/Review';
 import { ImportPanel } from './components/ImportPanel';
 import { NotesView } from './components/NotesView';
 import { NoteEditor } from './components/NoteEditor';
+import { Sidebar, type Tab } from './components/Sidebar';
 
-type Tab = 'notes' | 'list' | 'review' | 'import';
+const MOBILE_QUERY = '(max-width: 899px)';
+const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
+const SIDEBAR_KEY = 'study-sidebar-hidden';
+
+function readHidden() {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -49,6 +60,22 @@ function Main({ email }: { email: string | null }) {
   const [reviewKey, setReviewKey] = useState(0);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editingNote, setEditingNote] = useState<{ note: Note; isNew: boolean } | null>(null);
+  /** PC: 사이드바 접기 / 모바일: 서랍 열기 */
+  const [sidebarHidden, setSidebarHidden] = useState(readHidden);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const setHidden = (v: boolean) => {
+    setSidebarHidden(v);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, v ? '1' : '0');
+    } catch {
+      /* 저장 실패해도 동작에는 문제 없음 */
+    }
+  };
+  const toggleSidebar = () => (isMobile() ? setDrawerOpen((o) => !o) : setHidden(!sidebarHidden));
+  const hideSidebar = () => (isMobile() ? setDrawerOpen(false) : setHidden(true));
+  /** 모바일에서 사이드바 항목을 고르면 서랍 닫기 */
+  const closeDrawer = () => setDrawerOpen(false);
 
   const reload = useCallback(async () => {
     try {
@@ -136,55 +163,67 @@ function Main({ email }: { email: string | null }) {
     setTab('review');
   };
 
-  const tabs: [Tab, string][] = [
-    ['notes', `개념 ${notes.length}`],
-    ['list', `카드 ${cards.length}`],
-    ['review', '복습'],
-    ['import', '가져오기'],
-  ];
+  const goTab = (t: Tab) => {
+    if (t === 'notes') setSelectedNoteId(null);
+    if (t === 'review' && tab !== 'review') reviewNote(null);
+    else setTab(t);
+    closeDrawer();
+  };
+
+  const selectedNote = notes.find((n) => n.id === selectedNoteId);
+  const TITLES: Record<Tab, string> = { notes: '개념', list: '카드', review: '복습', import: '가져오기' };
+  const pageTitle = tab === 'notes' && selectedNote ? selectedNote.title : TITLES[tab];
+
+  const footer =
+    store.kind === 'local' ? (
+      <span className="pill warn" title="Supabase 환경변수가 없어서 이 브라우저에만 저장됩니다">
+        로컬 모드 · 이 브라우저에만 저장
+      </span>
+    ) : (
+      <div className="row">
+        <span className="muted small sb-email">{email}</span>
+        <span className="spacer" />
+        <button className="link small" onClick={() => supabase!.auth.signOut()}>
+          로그아웃
+        </button>
+      </div>
+    );
 
   return (
-    <div className="app">
-      <header>
-        <h1>면접 노트</h1>
-        <span className="spacer" />
-        {store.kind === 'local' ? (
-          <span className="pill warn" title="Supabase 환경변수가 없어서 이 브라우저에만 저장됩니다">
-            로컬 모드
-          </span>
-        ) : (
-          <>
-            <span className="muted small hide-sm">{email}</span>
-            <button className="link" onClick={() => supabase!.auth.signOut()}>
-              로그아웃
-            </button>
-          </>
-        )}
-      </header>
+    <div className={`layout ${sidebarHidden ? 'sb-hidden' : ''} ${drawerOpen ? 'drawer-open' : ''}`}>
+      <Sidebar
+        tab={tab}
+        notes={notes}
+        cards={cards}
+        selectedNoteId={selectedNoteId}
+        onTab={goTab}
+        onSelectNote={(id) => {
+          openNote(id);
+          closeDrawer();
+        }}
+        onNewNote={() => {
+          setEditingNote({ note: newNote(), isNew: true });
+          closeDrawer();
+        }}
+        onHide={hideSidebar}
+        footer={footer}
+      />
+      <div className="scrim" onClick={closeDrawer} />
 
-      <nav className="tabs">
-        {tabs.map(([t, label]) => (
-          <button
-            key={t}
-            className={tab === t ? 'on' : ''}
-            onClick={() => {
-              if (t === 'notes' && tab === 'notes') setSelectedNoteId(null);
-              if (t === 'review' && tab !== 'review') reviewNote(null);
-              else setTab(t);
-            }}
-          >
-            {label}
+      <div className="main-col">
+        <div className="topbar">
+          <button className="icon-btn menu-btn" title="사이드바" onClick={toggleSidebar}>
+            ☰
           </button>
-        ))}
-      </nav>
+          <span className="topbar-title">{pageTitle}</span>
+        </div>
 
-      {error && (
-        <p className="notice error" onClick={() => setError(null)}>
-          {error}
-        </p>
-      )}
-
-      <main>
+        <main className="content">
+          {error && (
+            <p className="notice error" onClick={() => setError(null)}>
+              {error}
+            </p>
+          )}
         {loading ? (
           <p className="muted">불러오는 중…</p>
         ) : tab === 'notes' ? (
@@ -210,7 +249,8 @@ function Main({ email }: { email: string | null }) {
         ) : (
           <ImportPanel cards={cards} notes={notes} onImport={saveAll} />
         )}
-      </main>
+        </main>
+      </div>
 
       {editingCard && (
         <CardEditor
