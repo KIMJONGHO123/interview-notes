@@ -44,7 +44,10 @@ export default function App() {
   if (!authReady) return <div className="center muted">불러오는 중…</div>;
   if (supabase && !session) return <Auth db={supabase} />;
 
-  return <Main key={session?.user.id ?? 'local'} email={session?.user.email ?? null} />;
+  // GitHub 로그인은 이메일이 비공개일 수 있어서 GitHub 아이디를 우선 표시
+  const meta = session?.user.user_metadata as { user_name?: string } | undefined;
+  const label = meta?.user_name ? `@${meta.user_name}` : (session?.user.email ?? null);
+  return <Main key={session?.user.id ?? 'local'} email={label} />;
 }
 
 const byNewest = <T extends { createdAt: string }>(a: T, b: T) => b.createdAt.localeCompare(a.createdAt);
