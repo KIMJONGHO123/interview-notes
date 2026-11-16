@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card, type Confidence, type Level, type Note } from '../types';
+import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card, type Confidence, type FollowUp, type Level, type Note } from '../types';
 
 interface Props {
   card: Card;
@@ -14,7 +14,16 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
   const [noteId, setNoteId] = useState<string>(card.noteId ?? '');
   const [question, setQuestion] = useState(card.question);
   const [answer, setAnswer] = useState(card.answer);
-  const [followUps, setFollowUps] = useState(card.followUps.join('\n'));
+  const [followUps, setFollowUps] = useState<FollowUp[]>(card.followUps.map((f) => ({ ...f })));
+  const updateFollowUp = (i: number, patch: Partial<FollowUp>) =>
+    setFollowUps((list) => list.map((f, j) => (j === i ? { ...f, ...patch } : f)));
+  const removeFollowUp = (i: number) => setFollowUps((list) => list.filter((_, j) => j !== i));
+  const moveFollowUp = (i: number, d: -1 | 1) =>
+    setFollowUps((list) => {
+      const next = [...list];
+      [next[i], next[i + d]] = [next[i + d], next[i]];
+      return next;
+    });
   const [project, setProject] = useState(card.project);
   const [tags, setTags] = useState(card.tags.join(', '));
   const [confidence, setConfidence] = useState<Confidence>(card.confidence);
@@ -25,7 +34,7 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
       ...card,
       question: question.trim(),
       answer: answer.trim(),
-      followUps: followUps.split('\n').map((s) => s.trim()).filter(Boolean),
+      followUps: followUps.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q),
       project: project.trim(),
       tags: [...new Set(tags.split(',').map((s) => s.trim()).filter(Boolean))],
       confidence,
@@ -67,10 +76,35 @@ export function CardEditor({ card, notes, onSave, onCancel, onDelete }: Props) {
           내 답변 <span className="muted">(30초 안에 말할 분량으로)</span>
           <textarea rows={6} value={answer} onChange={(e) => setAnswer(e.target.value)} />
         </label>
-        <label>
-          꼬리질문 <span className="muted">(한 줄에 하나)</span>
-          <textarea rows={3} value={followUps} onChange={(e) => setFollowUps(e.target.value)} />
-        </label>
+        <div className="stack fu-editor">
+          <div className="row">
+            <b className="small">꼬리질문</b>
+            <span className="muted small">면접관이 이어서 물어볼 질문과 내 답</span>
+          </div>
+          {followUps.map((f, i) => (
+            <div key={i} className="fu-row">
+              <div className="fu-num">{i + 1}</div>
+              <div className="stack grow">
+                <input placeholder="꼬리질문" value={f.q} onChange={(e) => updateFollowUp(i, { q: e.target.value })} />
+                <textarea rows={2} placeholder="답 (1~2줄)" value={f.a} onChange={(e) => updateFollowUp(i, { a: e.target.value })} />
+              </div>
+              <div className="fu-actions">
+                <button title="위로" disabled={i === 0} onClick={() => moveFollowUp(i, -1)}>
+                  ↑
+                </button>
+                <button title="아래로" disabled={i === followUps.length - 1} onClick={() => moveFollowUp(i, 1)}>
+                  ↓
+                </button>
+                <button title="삭제" className="danger" onClick={() => removeFollowUp(i)}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+          <div>
+            <button onClick={() => setFollowUps((list) => [...list, { q: '', a: '' }])}>+ 꼬리질문 추가</button>
+          </div>
+        </div>
         <label>
           내 프로젝트와 연결 <span className="muted">(어디에, 왜 썼는지)</span>
           <textarea rows={2} value={project} onChange={(e) => setProject(e.target.value)} />

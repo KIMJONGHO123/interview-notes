@@ -31,7 +31,7 @@ export function CardList({ cards, notes, onEdit, onNew, onOpenNote }: Props) {
         (!tag || c.tags.includes(tag)) &&
         (!conf || c.confidence === conf) &&
         (!level || c.level === level) &&
-        (!q || [c.question, c.answer, c.project, ...c.followUps].some((s) => s.toLowerCase().includes(q))),
+        (!q || [c.question, c.answer, c.project, ...c.followUps.flatMap((f) => [f.q, f.a])].some((s) => s.toLowerCase().includes(q))),
     );
   }, [cards, query, tag, conf, level]);
 

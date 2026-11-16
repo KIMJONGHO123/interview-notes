@@ -36,7 +36,7 @@ create table if not exists public.cards (
   user_id          uuid not null default auth.uid() references auth.users (id) on delete cascade,
   question         text not null,
   answer           text not null default '',
-  follow_ups       text[] not null default '{}',
+  follow_ups       jsonb not null default '[]'::jsonb,   -- [{ "q": 꼬리질문, "a": 답 }]
   project          text not null default '',
   tags             text[] not null default '{}',
   confidence       text not null default 'mid' check (confidence in ('low', 'mid', 'high')),
@@ -50,6 +50,20 @@ alter table public.cards
   add column if not exists level text not null default 'interview' check (level in ('basic', 'interview'));
 alter table public.cards
   add column if not exists note_id uuid references public.notes (id) on delete set null;
+
+-- v3: 꼬리질문을 text[] → jsonb [{q, a}] 로 변경 (예전 문자열은 앱이 "질문 (답)" 괄호로 자동 분리)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cards' and column_name = 'follow_ups' and data_type = 'ARRAY'
+  ) then
+    alter table public.cards alter column follow_ups drop default;
+    alter table public.cards alter column follow_ups type jsonb using to_jsonb(follow_ups);
+    alter table public.cards alter column follow_ups set default '[]'::jsonb;
+  end if;
+end;
+$$;
 
 create index if not exists cards_user_id_idx on public.cards (user_id);
 create index if not exists cards_note_id_idx on public.cards (note_id);

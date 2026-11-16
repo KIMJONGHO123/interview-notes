@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card } from '../types';
+import { FollowUpList } from './FollowUpList';
 
 interface Props {
   card: Card;
@@ -25,16 +26,7 @@ export function CardItem({ card: c, noteTitle, onEdit, onOpenNote }: Props) {
       {open && (
         <div className="card-body">
           {c.answer && <p className="answer">{c.answer}</p>}
-          {c.followUps.length > 0 && (
-            <div>
-              <h4>꼬리질문</h4>
-              <ul className="follow">
-                {c.followUps.map((f, i) => (
-                  <li key={i}>{f}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {c.followUps.length > 0 && <FollowUpList items={c.followUps} />}
           {c.project && (
             <div>
               <h4>내 프로젝트</h4>

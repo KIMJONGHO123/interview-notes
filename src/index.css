@@ -215,3 +215,25 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
 .md th, .md td { overflow-wrap: normal; min-width: 72px; }
 .md td:first-child { white-space: nowrap; }
 .note-article .md { margin-top: 4px; }
+
+/* ─── v3: 꼬리질문 질문/답 ─── */
+.followups ol { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; counter-reset: fu; }
+.followups li { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; counter-increment: fu; }
+.followups li.open { border-color: var(--accent); }
+.fq {
+  width: 100%; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between;
+  border: none; border-radius: 0; background: var(--bg); text-align: left; white-space: normal; padding: 8px 12px;
+}
+.fq > span:first-child::before { content: '↳ ' counter(fu) '. '; color: var(--muted); }
+.fq > span:last-child { flex: none; }
+.fa { padding: 8px 12px 10px 30px; white-space: pre-wrap; }
+
+.fu-editor { padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.fu-row { display: flex; gap: 8px; align-items: flex-start; }
+.fu-row .stack { gap: 6px; }
+.fu-num { flex: none; width: 22px; padding-top: 10px; text-align: center; color: var(--muted); font-weight: 700; font-size: 0.85rem; }
+.fu-actions { display: flex; flex-direction: column; gap: 4px; }
+.fu-actions button { padding: 3px 8px; font-size: 0.8rem; }
+
+.review-parent { padding: 8px 12px; border-left: 3px solid var(--border); color: var(--muted); font-size: 0.88rem; }
+.fu-badge { color: var(--accent); font-weight: 700; font-size: 0.82rem; }

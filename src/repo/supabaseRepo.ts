@@ -1,12 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Card, Confidence, Level, Note } from '../types';
+import { normalizeFollowUps, type Card, type Confidence, type FollowUp, type Level, type Note } from '../types';
 import type { Repository, Store } from './Store';
 
 interface CardRow {
   id: string;
   question: string;
   answer: string;
-  follow_ups: string[];
+  /** jsonb: [{ q, a }] (예전 데이터는 문자열일 수 있음) */
+  follow_ups: FollowUp[] | string[];
   project: string;
   tags: string[];
   confidence: Confidence;
@@ -32,7 +33,7 @@ const cardMapper = {
     id: r.id,
     question: r.question,
     answer: r.answer,
-    followUps: r.follow_ups ?? [],
+    followUps: normalizeFollowUps(r.follow_ups),
     project: r.project,
     tags: r.tags ?? [],
     confidence: r.confidence,
