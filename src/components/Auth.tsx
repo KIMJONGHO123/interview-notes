@@ -15,7 +15,8 @@ export function Auth({ db }: { db: SupabaseClient }) {
     const { data, error } =
       mode === 'signin'
         ? await db.auth.signInWithPassword({ email, password })
-        : await db.auth.signUp({ email, password });
+        : // 확인 메일 링크가 가입한 사이트(배포 주소 또는 localhost)로 돌아오게
+          await db.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
     setBusy(false);
     if (error) return setMsg(error.message);
     if (mode === 'signup' && !data.session) setMsg('확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인하세요.');

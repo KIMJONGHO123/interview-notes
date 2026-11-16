@@ -58,10 +58,18 @@ npm run dev
 
 ## Vercel 배포
 
-1. 이 폴더를 GitHub 저장소로 push
-2. https://vercel.com → **Add New Project** → 저장소 선택 (Framework: Vite 자동 감지)
-3. **Environment Variables**에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 추가 → Deploy
-4. 배포된 주소를 Supabase **Authentication → URL Configuration → Site URL** 에 등록
+- 운영 주소: https://interview-notes-wheat.vercel.app (Vercel 팀 `jh-k`, 프로젝트 `interview-notes`)
+- 환경변수 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 는 Vercel 프로젝트에 설정되어 있음
+- 현재 GitHub 자동 배포는 연결되지 않음 → 수정 후 CLI로 배포:
+
+  ```bash
+  npx vercel deploy --prod --scope jh-k
+  ```
+
+- 나중에 Vercel 계정에 GitHub 로그인이 연결되면 `npx vercel git connect --scope jh-k` 로 push 자동 배포 전환 가능
+- Supabase **Authentication → URL Configuration**
+  - Site URL: 운영 주소
+  - Redirect URLs: 운영 주소, `http://localhost:5173`
 
 ## 구조
 
