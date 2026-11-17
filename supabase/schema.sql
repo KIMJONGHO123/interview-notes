@@ -198,3 +198,69 @@ revoke execute on function public.note_bytes(public.notes), public.card_bytes(pu
   public.enforce_note_limit(), public.enforce_card_limit() from public, anon;
 grant execute on function public.note_bytes(public.notes), public.card_bytes(public.cards),
   public.usage_bytes(uuid, uuid), public.storage_limit_bytes(), public.my_usage() to authenticated;
+
+-- ─────────────────────────────── v5: 마인드맵 (같은 2.8MB 한도에 포함)
+create table if not exists public.mindmaps (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title      text not null,
+  nodes      jsonb not null default '[]'::jsonb,   -- [{ id, parentId, label, noteId?, collapsed? }]
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint mindmaps_title_len check (char_length(title) <= 100),
+  constraint mindmaps_nodes_shape check (
+    jsonb_typeof(nodes) = 'array' and jsonb_array_length(nodes) <= 300 and octet_length(nodes::text) <= 60000
+  )
+);
+
+create index if not exists mindmaps_user_id_idx on public.mindmaps (user_id);
+
+drop trigger if exists mindmaps_set_updated_at on public.mindmaps;
+create trigger mindmaps_set_updated_at
+  before update on public.mindmaps
+  for each row execute function public.set_updated_at();
+
+grant select, insert, update, delete on public.mindmaps to authenticated;
+revoke all on public.mindmaps from anon;
+
+alter table public.mindmaps enable row level security;
+drop policy if exists "mindmaps_select_own" on public.mindmaps;
+drop policy if exists "mindmaps_insert_own" on public.mindmaps;
+drop policy if exists "mindmaps_update_own" on public.mindmaps;
+drop policy if exists "mindmaps_delete_own" on public.mindmaps;
+create policy "mindmaps_select_own" on public.mindmaps for select using ((select auth.uid()) = user_id);
+create policy "mindmaps_insert_own" on public.mindmaps for insert with check ((select auth.uid()) = user_id);
+create policy "mindmaps_update_own" on public.mindmaps for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "mindmaps_delete_own" on public.mindmaps for delete using ((select auth.uid()) = user_id);
+
+create or replace function public.mindmap_bytes(m public.mindmaps)
+returns bigint language sql immutable set search_path = '' as $$
+  select octet_length(m.title)::bigint + octet_length(m.nodes::text)
+$$;
+
+create or replace function public.usage_bytes(uid uuid, skip_id uuid default null)
+returns bigint language sql stable set search_path = '' as $$
+  select coalesce((select sum(public.note_bytes(n)) from public.notes n where n.user_id = uid and n.id is distinct from skip_id), 0)::bigint
+       + coalesce((select sum(public.card_bytes(c)) from public.cards c where c.user_id = uid and c.id is distinct from skip_id), 0)::bigint
+       + coalesce((select sum(public.mindmap_bytes(m)) from public.mindmaps m where m.user_id = uid and m.id is distinct from skip_id), 0)::bigint
+$$;
+
+create or replace function public.enforce_mindmap_limit()
+returns trigger language plpgsql set search_path = '' as $$
+declare total bigint;
+begin
+  if tg_op = 'UPDATE' and public.mindmap_bytes(new) <= public.mindmap_bytes(old) then return new; end if;
+  total := public.usage_bytes(new.user_id, new.id) + public.mindmap_bytes(new);
+  if total > public.storage_limit_bytes() then
+    raise exception using errcode = 'P0001', message = 'STORAGE_LIMIT', detail = total::text;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists mindmaps_storage_limit on public.mindmaps;
+create trigger mindmaps_storage_limit before insert or update on public.mindmaps
+  for each row execute function public.enforce_mindmap_limit();
+
+revoke execute on function public.mindmap_bytes(public.mindmaps), public.enforce_mindmap_limit() from public, anon;
+grant execute on function public.mindmap_bytes(public.mindmaps) to authenticated;

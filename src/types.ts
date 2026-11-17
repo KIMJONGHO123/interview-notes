@@ -108,3 +108,49 @@ export function normalizeCard(c: Partial<Card> & { id: string; question: string 
     noteId: c.noteId ?? null,
   });
 }
+
+// ─────────────────────────────── 마인드맵
+export interface MindNode {
+  id: string;
+  /** null 이면 가운데 핵심 노드 */
+  parentId: string | null;
+  label: string;
+  /** 연결된 개념 노트 */
+  noteId?: string | null;
+  /** 하위 가지 접기 */
+  collapsed?: boolean;
+}
+
+export interface MindMap {
+  id: string;
+  /** 핵심 노드의 이름과 같음 */
+  title: string;
+  nodes: MindNode[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 노드용 짧은 id (용량 절약) */
+export function shortId() {
+  const a = new Uint8Array(6);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(36).padStart(2, '0')).join('');
+}
+
+export function newMindMap(title: string): MindMap {
+  const now = nowIso();
+  return {
+    id: crypto.randomUUID(),
+    title,
+    nodes: [{ id: shortId(), parentId: null, label: title }],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** 핵심 노드가 없거나 형식이 깨진 데이터 보정 */
+export function normalizeMindMap(m: MindMap): MindMap {
+  const nodes = Array.isArray(m.nodes) ? m.nodes.filter((n) => n && typeof n.id === 'string') : [];
+  if (!nodes.some((n) => n.parentId === null)) nodes.unshift({ id: shortId(), parentId: null, label: m.title || '핵심 단어' });
+  return { ...m, nodes };
+}

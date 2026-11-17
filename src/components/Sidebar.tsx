@@ -1,12 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Card, Note } from '../types';
 
-export type Tab = 'notes' | 'list' | 'review' | 'import';
+export type Tab = 'notes' | 'maps' | 'list' | 'review' | 'import';
 
 interface Props {
   tab: Tab;
   notes: Note[];
   cards: Card[];
+  mapCount: number;
   selectedNoteId: string | null;
   onTab: (tab: Tab) => void;
   onSelectNote: (id: string) => void;
@@ -17,6 +18,7 @@ interface Props {
 
 const NAV: [Tab, string, string][] = [
   ['notes', '📖', '개념'],
+  ['maps', '🧠', '마인드맵'],
   ['list', '🗂️', '카드'],
   ['review', '🔁', '복습'],
   ['import', '📥', '가져오기'],
@@ -24,7 +26,7 @@ const NAV: [Tab, string, string][] = [
 
 const UNTAGGED = '기타';
 
-export function Sidebar({ tab, notes, cards, selectedNoteId, onTab, onSelectNote, onNewNote, onHide, footer }: Props) {
+export function Sidebar({ tab, notes, cards, mapCount, selectedNoteId, onTab, onSelectNote, onNewNote, onHide, footer }: Props) {
   const [query, setQuery] = useState('');
 
   const weakByNote = useMemo(() => {
@@ -45,7 +47,7 @@ export function Sidebar({ tab, notes, cards, selectedNoteId, onTab, onSelectNote
     return [...map.entries()].sort(([a], [b]) => (a === UNTAGGED ? 1 : b === UNTAGGED ? -1 : a.localeCompare(b)));
   }, [notes, query]);
 
-  const counts: Partial<Record<Tab, number>> = { notes: notes.length, list: cards.length };
+  const counts: Partial<Record<Tab, number>> = { notes: notes.length, maps: mapCount, list: cards.length };
 
   return (
     <aside className="sidebar">

@@ -1,6 +1,6 @@
-import { normalizeCard, type Card, type Note } from '../types';
+import { normalizeCard, normalizeMindMap, type Card, type MindMap, type Note } from '../types';
 import type { Repository, Store } from './Store';
-import { cardBytes, noteBytes } from '../lib/limits';
+import { cardBytes, mindmapBytes, noteBytes } from '../lib/limits';
 
 class LocalRepository<T extends { id: string }> implements Repository<T> {
   private readonly key: string;
@@ -44,9 +44,14 @@ export function createLocalStore(): Store {
     kind: 'local',
     cards: new LocalRepository<Card>('study-cards:v1', normalizeCard),
     notes: new LocalRepository<Note>('study-notes:v1'),
+    mindmaps: new LocalRepository<MindMap>('study-mindmaps:v1', normalizeMindMap),
     async usage() {
-      const [cards, notes] = await Promise.all([this.cards.list(), this.notes.list()]);
-      return cards.reduce((s, c) => s + cardBytes(c), 0) + notes.reduce((s, n) => s + noteBytes(n), 0);
+      const [cards, notes, maps] = await Promise.all([this.cards.list(), this.notes.list(), this.mindmaps.list()]);
+      return (
+        cards.reduce((s, c) => s + cardBytes(c), 0) +
+        notes.reduce((s, n) => s + noteBytes(n), 0) +
+        maps.reduce((s, m) => s + mindmapBytes(m), 0)
+      );
     },
   };
 }

@@ -1,4 +1,4 @@
-import type { Card, Note } from '../types';
+import type { Card, MindMap, Note } from '../types';
 
 /**
  * 사용자당 저장 한도. DB(supabase/schema.sql 의 storage_limit_bytes)와 같은 값이어야 함.
@@ -18,6 +18,8 @@ export const LIMITS = {
   cardProject: 3_000,
   followUps: 10,
   tags: 10,
+  mindLabel: 50,
+  mindNodes: 300,
 };
 
 const enc = new TextEncoder();
@@ -27,6 +29,8 @@ const bytes = (s: string) => enc.encode(s).length;
 export const noteBytes = (n: Note) => bytes(n.title) + bytes(n.body) + bytes(n.tags.join(','));
 export const cardBytes = (c: Card) =>
   bytes(c.question) + bytes(c.answer) + bytes(c.project) + bytes(JSON.stringify(c.followUps)) + bytes(c.tags.join(','));
+
+export const mindmapBytes = (m: MindMap) => bytes(m.title) + bytes(JSON.stringify(m.nodes));
 
 export function formatMB(b: number) {
   return `${(b / 1024 / 1024).toFixed(b < 100 * 1024 ? 2 : 1)}MB`;
@@ -46,6 +50,8 @@ export function friendlyError(e: unknown): string {
     if (msg.includes('project_len')) return `"내 프로젝트" 칸은 ${LIMITS.cardProject.toLocaleString()}자까지 저장할 수 있어요.`;
     if (msg.includes('follow_ups_len')) return `꼬리질문은 카드당 ${LIMITS.followUps}개까지 저장할 수 있어요.`;
     if (msg.includes('tags_len')) return `태그는 ${LIMITS.tags}개까지 붙일 수 있어요.`;
+    if (msg.includes('mindmaps_nodes_shape')) return `마인드맵 하나에는 가지를 ${LIMITS.mindNodes}개까지 만들 수 있어요.`;
+    if (msg.includes('mindmaps_title_len')) return '핵심 단어가 너무 길어요.';
     return '입력한 내용이 너무 길어서 저장하지 못했어요.';
   }
   if (msg.includes('Failed to fetch')) return '네트워크 연결을 확인해 주세요.';

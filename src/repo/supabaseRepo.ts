@@ -1,5 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizeFollowUps, type Card, type Confidence, type FollowUp, type Level, type Note } from '../types';
+import {
+  normalizeFollowUps,
+  normalizeMindMap,
+  type Card,
+  type Confidence,
+  type FollowUp,
+  type Level,
+  type MindMap,
+  type MindNode,
+  type Note,
+} from '../types';
 import type { Repository, Store } from './Store';
 
 interface CardRow {
@@ -26,6 +36,26 @@ interface NoteRow {
   created_at: string;
   updated_at: string;
 }
+
+interface MindMapRow {
+  id: string;
+  title: string;
+  nodes: MindNode[];
+  created_at: string;
+  updated_at: string;
+}
+
+const mindmapMapper = {
+  from: (r: MindMapRow): MindMap =>
+    normalizeMindMap({ id: r.id, title: r.title, nodes: r.nodes ?? [], createdAt: r.created_at, updatedAt: r.updated_at }),
+  to: (m: MindMap): MindMapRow => ({
+    id: m.id,
+    title: m.title,
+    nodes: m.nodes,
+    created_at: m.createdAt,
+    updated_at: m.updatedAt,
+  }),
+};
 
 // user_id 는 DB 기본값 auth.uid() 로 채워지므로 보내지 않음
 const cardMapper = {
@@ -112,6 +142,7 @@ export function createSupabaseStore(db: SupabaseClient): Store {
     kind: 'supabase',
     cards: new SupabaseRepository<Card, CardRow>(db, 'cards', cardMapper),
     notes: new SupabaseRepository<Note, NoteRow>(db, 'notes', noteMapper),
+    mindmaps: new SupabaseRepository<MindMap, MindMapRow>(db, 'mindmaps', mindmapMapper),
     async usage() {
       const { data, error } = await db.rpc('my_usage');
       if (error) throw error;

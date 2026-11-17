@@ -4,13 +4,14 @@ import { supabase } from './lib/supabase';
 import type { Store } from './repo/Store';
 import { createLocalStore } from './repo/localRepo';
 import { createSupabaseStore } from './repo/supabaseRepo';
-import { newCard, newNote, type Card, type Confidence, type Note } from './types';
+import { newCard, newNote, type Card, type Confidence, type MindMap, type Note } from './types';
 import { Auth } from './components/Auth';
 import { CardList } from './components/CardList';
 import { CardEditor } from './components/CardEditor';
 import { Review } from './components/Review';
 import { ImportPanel } from './components/ImportPanel';
 import { NotesView } from './components/NotesView';
+import { MindMapsView } from './components/MindMapsView';
 import { NoteEditor } from './components/NoteEditor';
 import { STORAGE_LIMIT_BYTES, formatMB, friendlyError } from './lib/limits';
 import { Sidebar, type Tab } from './components/Sidebar';
@@ -56,6 +57,8 @@ function Main({ email }: { email: string | null }) {
   const store: Store = useMemo(() => (supabase ? createSupabaseStore(supabase) : createLocalStore()), []);
   const [cards, setCards] = useState<Card[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [mindmaps, setMindmaps] = useState<MindMap[]>([]);
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('notes');
@@ -85,9 +88,15 @@ function Main({ email }: { email: string | null }) {
 
   const reload = useCallback(async () => {
     try {
-      const [c, n, u] = await Promise.all([store.cards.list(), store.notes.list(), store.usage().catch(() => null)]);
+      const [c, n, m, u] = await Promise.all([
+        store.cards.list(),
+        store.notes.list(),
+        store.mindmaps.list(),
+        store.usage().catch(() => null),
+      ]);
       setCards(c.sort(byNewest));
       setNotes(n.sort(byNewest));
+      setMindmaps(m);
       setUsage(u);
       setError(null);
     } catch (e) {
@@ -160,6 +169,27 @@ function Main({ email }: { email: string | null }) {
     store.cards.upsertMany([updated]).catch((e) => setError(friendlyError(e)));
   };
 
+  /** 마인드맵 자동 저장: 편집 중인 화면을 유지하려고 전체를 다시 불러오지 않음 */
+  const saveMindMap = async (map: MindMap) => {
+    try {
+      await store.mindmaps.upsertMany([map]);
+      setMindmaps((prev) => (prev.some((m) => m.id === map.id) ? prev.map((m) => (m.id === map.id ? map : m)) : [...prev, map]));
+      store.usage().then(setUsage, () => {});
+      return true;
+    } catch (e) {
+      setError(friendlyError(e));
+      return false;
+    }
+  };
+
+  const removeMindMap = (map: MindMap) => {
+    if (!confirm(`"${map.title}" 마인드맵을 삭제할까요? 되돌릴 수 없어요.`)) return;
+    run(async () => {
+      await store.mindmaps.remove(map.id);
+      if (selectedMapId === map.id) setSelectedMapId(null);
+    });
+  };
+
   const openNote = (noteId: string) => {
     setSelectedNoteId(noteId);
     setTab('notes');
@@ -173,14 +203,18 @@ function Main({ email }: { email: string | null }) {
 
   const goTab = (t: Tab) => {
     if (t === 'notes') setSelectedNoteId(null);
+    if (t === 'maps') setSelectedMapId(null);
     if (t === 'review' && tab !== 'review') reviewNote(null);
     else setTab(t);
     closeDrawer();
   };
 
   const selectedNote = notes.find((n) => n.id === selectedNoteId);
-  const TITLES: Record<Tab, string> = { notes: '개념', list: '카드', review: '복습', import: '가져오기' };
-  const pageTitle = tab === 'notes' && selectedNote ? selectedNote.title : TITLES[tab];
+  const selectedMap = mindmaps.find((m) => m.id === selectedMapId);
+  const TITLES: Record<Tab, string> = { notes: '개념', maps: '마인드맵', list: '카드', review: '복습', import: '가져오기' };
+  const pageTitle =
+    tab === 'notes' && selectedNote ? selectedNote.title : tab === 'maps' && selectedMap ? `🧠 ${selectedMap.title}` : TITLES[tab];
+  const canvasMode = tab === 'maps' && !!selectedMap;
 
   const usagePct = usage === null ? 0 : Math.min(100, (usage / STORAGE_LIMIT_BYTES) * 100);
   const usageMeter = usage !== null && (
@@ -223,6 +257,7 @@ function Main({ email }: { email: string | null }) {
         tab={tab}
         notes={notes}
         cards={cards}
+        mapCount={mindmaps.length}
         selectedNoteId={selectedNoteId}
         onTab={goTab}
         onSelectNote={(id) => {
@@ -246,7 +281,7 @@ function Main({ email }: { email: string | null }) {
           <span className="topbar-title">{pageTitle}</span>
         </div>
 
-        <main className="content">
+        <main className={canvasMode ? 'content canvas-mode' : 'content'}>
           {error && (
             <p className="notice error" onClick={() => setError(null)}>
               {error}
@@ -269,6 +304,16 @@ function Main({ email }: { email: string | null }) {
               setEditingCard(newCard({ noteId, level: 'basic', tags: note ? [...note.tags] : [] }));
             }}
             onReview={reviewNote}
+          />
+        ) : tab === 'maps' ? (
+          <MindMapsView
+            maps={mindmaps}
+            notes={notes}
+            selectedId={selectedMapId}
+            onSelect={setSelectedMapId}
+            onSave={saveMindMap}
+            onDelete={removeMindMap}
+            onOpenNote={openNote}
           />
         ) : tab === 'list' ? (
           <CardList cards={cards} notes={notes} onEdit={setEditingCard} onNew={() => setEditingCard(newCard())} onOpenNote={openNote} />
