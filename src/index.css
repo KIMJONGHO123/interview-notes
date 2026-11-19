@@ -4,7 +4,8 @@
   --text: #1c1f24;
   --muted: #6b7280;
   --border: #e3e6ea;
-  --accent: #2f6fed;
+  /* 로고 보라색 (흰 글자 대비 6.5:1) */
+  --accent: #5634e8;
   --accent-text: #ffffff;
   --low: #e5484d;
   --mid: #e8a317;
@@ -25,7 +26,9 @@
     --text: #e8eaed;
     --muted: #9aa1ab;
     --border: #2c3038;
-    --accent: #5b8cff;
+    /* 어두운 배경용 밝은 보라 (배경 대비 6.7:1), 그 위 글자는 어둡게 */
+    --accent: #9d8bff;
+    --accent-text: #15112e;
     --low-bg: #3a1d1f;
     --mid-bg: #3a2f17;
     --high-bg: #18321f;
