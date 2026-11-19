@@ -60,13 +60,12 @@ npm run dev
 
 - 운영 주소: https://interview-notes-wheat.vercel.app (Vercel 팀 `jh-k`, 프로젝트 `interview-notes`)
 - 환경변수 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 는 Vercel 프로젝트에 설정되어 있음
-- 현재 GitHub 자동 배포는 연결되지 않음 → 수정 후 CLI로 배포:
+- **GitHub 자동 배포 연결됨**: `main` 에 push 하면 운영에 자동 배포, 다른 브랜치는 미리보기 배포
+- 급할 때 수동 배포:
 
   ```bash
   npx vercel deploy --prod --scope jh-k
   ```
-
-- 나중에 Vercel 계정에 GitHub 로그인이 연결되면 `npx vercel git connect --scope jh-k` 로 push 자동 배포 전환 가능
 - Supabase **Authentication → URL Configuration**
   - Site URL: 운영 주소
   - Redirect URLs: 운영 주소, `http://localhost:5173`
