@@ -268,3 +268,23 @@ grant execute on function public.mindmap_bytes(public.mindmaps) to authenticated
 -- ─────────────────────────────── v6: 카드 종류 = 개념(기초 basic / 심화 advanced) + 면접(interview)
 alter table public.cards drop constraint if exists cards_level_check;
 alter table public.cards add constraint cards_level_check check (level in ('basic', 'advanced', 'interview'));
+
+-- ─────────────────────────────── v7: 회원 탈퇴 (본인 계정 삭제)
+-- auth.users 를 지우면 notes, cards, mindmaps 는 on delete cascade 로 함께 삭제됨
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare uid uuid := (select auth.uid());
+begin
+  if uid is null then
+    raise exception using errcode = '42501', message = 'NOT_AUTHENTICATED';
+  end if;
+  delete from auth.users where id = uid;
+end;
+$$;
+
+revoke execute on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

@@ -436,3 +436,15 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
 .mode-pick button b { font-size: 1.02rem; }
 .mode-pick button.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
 @media (max-width: 520px) { .mode-pick { grid-template-columns: 1fr; } }
+
+/* ─── v9: 개인정보 안내 / 회원 탈퇴 ─── */
+.privacy section h3 { margin: 4px 0 6px; font-size: 1rem; }
+.privacy section p, .privacy ul { margin: 0 0 6px; }
+.privacy ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.delete-list { margin: 0; padding-left: 18px; }
+button.danger-solid { background: var(--low); color: #fff; border-color: transparent; font-weight: 700; }
+button.danger-solid:disabled { opacity: 0.45; }
+.foot-links { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; }
+.foot-links .sep { color: var(--muted); font-size: 0.75rem; }
+.foot-links button.link { color: var(--muted); font-size: 0.78rem; padding: 2px 4px; }
+.foot-links button.link:hover { color: var(--text); }

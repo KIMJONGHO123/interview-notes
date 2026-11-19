@@ -15,6 +15,8 @@ import { MindMapsView } from './components/MindMapsView';
 import { NoteEditor } from './components/NoteEditor';
 import { STORAGE_LIMIT_BYTES, formatMB, friendlyError } from './lib/limits';
 import { Sidebar, type Tab } from './components/Sidebar';
+import { PrivacyModal } from './components/Privacy';
+import { DeleteAccountModal } from './components/DeleteAccount';
 
 const MOBILE_QUERY = '(max-width: 899px)';
 const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
@@ -71,6 +73,7 @@ function Main({ email }: { email: string | null }) {
   /** PC: 사이드바 접기 / 모바일: 서랍 열기 */
   const [sidebarHidden, setSidebarHidden] = useState(readHidden);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [dialog, setDialog] = useState<'privacy' | 'delete' | null>(null);
 
   const setHidden = (v: boolean) => {
     setSidebarHidden(v);
@@ -250,6 +253,19 @@ function Main({ email }: { email: string | null }) {
           </button>
         </div>
       )}
+      <div className="foot-links">
+        <button className="link" onClick={() => setDialog('privacy')}>
+          개인정보 안내
+        </button>
+        {store.kind !== 'local' && (
+          <>
+            <span className="sep">·</span>
+            <button className="link" onClick={() => setDialog('delete')}>
+              회원 탈퇴
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 
@@ -344,6 +360,11 @@ function Main({ email }: { email: string | null }) {
           onSave={saveNote}
           onCancel={() => setEditingNote(null)}
         />
+      )}
+
+      {dialog === 'privacy' && <PrivacyModal onClose={() => setDialog(null)} />}
+      {dialog === 'delete' && supabase && (
+        <DeleteAccountModal db={supabase} notes={notes} cards={cards} mindmaps={mindmaps} onClose={() => setDialog(null)} />
       )}
     </div>
   );

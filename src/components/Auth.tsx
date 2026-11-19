@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { PrivacyModal } from './Privacy';
 
 /** OAuth 실패 시 Supabase 가 주소에 붙여 보내는 오류 메시지 */
 function readOAuthError(): string | null {
@@ -16,6 +17,7 @@ const FEATURES = [
 export function Auth({ db }: { db: SupabaseClient }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(readOAuthError);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   async function signInWithGitHub() {
     setBusy(true);
@@ -64,7 +66,11 @@ export function Auth({ db }: { db: SupabaseClient }) {
 
       <p className="muted small auth-note">
         GitHub 계정으로 가입과 로그인이 함께 돼요. 처음이면 자동으로 가입됩니다.
+        <br />
+        시작하면 <button className="link small" style={{ padding: 0 }} onClick={() => setShowPrivacy(true)}>개인정보 안내</button>에 동의한 것으로 봐요.
       </p>
+
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
     </div>
   );
 }
