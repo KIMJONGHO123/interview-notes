@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Card, MindMap, Note } from '../types';
+import { downloadBackup } from '../lib/backup';
 
 interface Props {
   db: SupabaseClient;
@@ -19,15 +20,7 @@ export function DeleteAccountModal({ db, notes, cards, mindmaps, onClose }: Prop
   const [error, setError] = useState<string | null>(null);
   const hasData = notes.length + cards.length + mindmaps.length > 0;
 
-  function backup() {
-    const data = { version: 3, exportedAt: new Date().toISOString(), notes, cards, mindmaps };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `interview-notes-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  const backup = () => downloadBackup({ notes, cards, mindmaps }, 'interview-notes-backup');
 
   async function remove() {
     if (text.trim() !== CONFIRM_WORD) return;
@@ -59,7 +52,7 @@ export function DeleteAccountModal({ db, notes, cards, mindmaps, onClose }: Prop
 
         {hasData && (
           <div className="helper">
-            <span>나중에 다시 쓰고 싶다면 먼저 백업해 두세요. (다시 가입한 뒤 가져오기 탭에서 노트·카드를 불러올 수 있어요)</span>
+            <span>나중에 다시 쓰고 싶다면 먼저 백업해 두세요. (다시 가입한 뒤 가져오기 탭에서 불러올 수 있어요)</span>
             <div className="row">
               <button onClick={backup}>📦 내 자료 백업 (JSON)</button>
             </div>

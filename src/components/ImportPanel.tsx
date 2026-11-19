@@ -1,16 +1,18 @@
 import { useMemo, useRef, useState } from 'react';
 import { CARD_PROMPT, parseCards } from '../lib/parse';
 import { SAMPLE_TEXT } from '../lib/samples';
-import { LEVEL_LABEL, normalizeCard, type Card, type Note } from '../types';
+import { LEVEL_LABEL, type Card, type MindMap, type Note } from '../types';
+import { downloadBackup, parseBackup, prepareImport } from '../lib/backup';
 import { MAX_IMPORT_CARDS } from '../lib/limits';
 
 interface Props {
   cards: Card[];
   notes: Note[];
-  onImport: (cards: Card[], notes: Note[]) => Promise<boolean>;
+  mindmaps: MindMap[];
+  onImport: (cards: Card[], notes: Note[], mindmaps?: MindMap[]) => Promise<boolean>;
 }
 
-export function ImportPanel({ cards, notes, onImport }: Props) {
+export function ImportPanel({ cards, notes, mindmaps, onImport }: Props) {
   const [text, setText] = useState('');
   const [noteId, setNoteId] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
@@ -34,30 +36,19 @@ export function ImportPanel({ cards, notes, onImport }: Props) {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  function exportJson() {
-    const data = { version: 2, exportedAt: new Date().toISOString(), notes, cards };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `interview-notes-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
   async function importJson(file: File) {
     try {
-      const data = JSON.parse(await file.text());
-      // v1: 카드 배열, v2: { notes, cards }
-      const rawCards: unknown[] = Array.isArray(data) ? data : data.cards ?? [];
-      const rawNotes: unknown[] = Array.isArray(data) ? [] : data.notes ?? [];
-      const validCards = (rawCards as Card[])
-        .filter((c) => c && typeof c.id === 'string' && typeof c.question === 'string')
-        .map(normalizeCard);
-      const validNotes = (rawNotes as Note[]).filter((n) => n && typeof n.id === 'string' && typeof n.title === 'string');
-      if (await onImport(validCards, validNotes))
-        setMsg(`개념 ${validNotes.length}개, 카드 ${validCards.length}개를 가져왔어요. (같은 id는 덮어씀)`);
+      const backup = parseBackup(await file.text());
+      const total = backup.notes.length + backup.cards.length + backup.mindmaps.length;
+      if (total === 0) {
+        setMsg('가져올 자료가 없어요. 이 앱에서 내보낸 JSON 파일인지 확인해 주세요.');
+        return;
+      }
+      const ready = prepareImport(backup, { notes, cards, mindmaps });
+      if (await onImport(ready.cards, ready.notes, ready.mindmaps))
+        setMsg(`개념 ${ready.notes.length}개, 카드 ${ready.cards.length}개, 마인드맵 ${ready.mindmaps.length}개를 가져왔어요.`);
     } catch (e) {
-      setMsg(`가져오기 실패: ${(e as Error).message}`);
+      setMsg(`가져오기 실패: ${e instanceof SyntaxError ? 'JSON 형식이 아니에요' : (e as Error).message}`);
     }
   }
 
@@ -124,8 +115,15 @@ export function ImportPanel({ cards, notes, onImport }: Props) {
 
       <section className="stack">
         <h3>백업</h3>
+        <p className="muted small">
+          개념·카드·마인드맵을 파일로 저장해요. 내 백업을 가져오면 같은 자료는 덮어쓰고, 다른 사람이 공유한 파일은 내 자료로 새로
+          추가돼요.
+        </p>
         <div className="row">
-          <button onClick={exportJson} disabled={cards.length === 0 && notes.length === 0}>
+          <button
+            onClick={() => downloadBackup({ notes, cards, mindmaps })}
+            disabled={cards.length === 0 && notes.length === 0 && mindmaps.length === 0}
+          >
             JSON 내보내기
           </button>
           <button onClick={() => fileRef.current?.click()}>JSON 가져오기</button>

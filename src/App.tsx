@@ -128,10 +128,11 @@ function Main({ email }: { email: string | null }) {
   };
 
   // 노트를 먼저 저장해야 카드의 note_id 외래키가 유효함
-  const saveAll = (newCards: Card[], newNotes: Note[]) =>
+  const saveAll = (newCards: Card[], newNotes: Note[], newMaps: MindMap[] = []) =>
     run(async () => {
       await store.notes.upsertMany(newNotes);
       await store.cards.upsertMany(newCards);
+      if (newMaps.length) await store.mindmaps.upsertMany(newMaps);
     });
 
   const saveCard = async (card: Card) => {
@@ -338,7 +339,7 @@ function Main({ email }: { email: string | null }) {
         ) : tab === 'review' ? (
           <Review key={reviewKey} cards={cards} notes={notes} initialNoteId={reviewNoteId} initialMode={reviewMode} onRate={rate} onOpenNote={openNote} />
         ) : (
-          <ImportPanel cards={cards} notes={notes} onImport={saveAll} />
+          <ImportPanel cards={cards} notes={notes} mindmaps={mindmaps} onImport={saveAll} />
         )}
         </main>
       </div>
