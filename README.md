@@ -49,9 +49,11 @@ npm run dev
    VITE_SUPABASE_ANON_KEY=...
    ```
 
-5. `npm run dev` → 회원가입 → 로그인
-   - 혼자 쓸 거라면 **Authentication → Sign In / Providers → Email → Confirm email** 을 꺼두면 메일 확인 없이 바로 로그인됨
-   - 내 계정을 만든 뒤 **Allow new users to sign up** 을 꺼두면 다른 사람이 가입할 수 없음
+5. **Authentication → Sign In / Providers**
+   - **GitHub** 켜기 (GitHub OAuth App 의 Client ID/Secret 입력, Callback URL 은 `https://<project>.supabase.co/auth/v1/callback`)
+   - **Email** 끄기: 로그인은 GitHub 만 사용 (켜두면 API로 이메일 가입이 가능해짐)
+   - **Allow new users to sign up** 은 켜두기 (끄면 GitHub 로도 새 사용자가 가입할 수 없음)
+6. `npm run dev` → GitHub으로 시작하기
 
 > anon 키는 브라우저에 노출되는 공개 키라 괜찮습니다. 데이터는 RLS 정책으로 본인 것만 접근됩니다.
 > `service_role` 키는 절대 넣지 마세요.
