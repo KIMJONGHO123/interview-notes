@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /** OAuth 실패 시 Supabase 가 주소에 붙여 보내는 오류 메시지 */
@@ -14,10 +14,6 @@ const FEATURES = [
 ] as const;
 
 export function Auth({ db }: { db: SupabaseClient }) {
-  const [showEmail, setShowEmail] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(readOAuthError);
 
@@ -33,19 +29,6 @@ export function Auth({ db }: { db: SupabaseClient }) {
       setBusy(false);
       setMsg(error.message);
     }
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setMsg(null);
-    const { data, error } =
-      mode === 'signin'
-        ? await db.auth.signInWithPassword({ email, password })
-        : await db.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
-    setBusy(false);
-    if (error) return setMsg(error.message);
-    if (mode === 'signup' && !data.session) setMsg('확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인하세요.');
   }
 
   return (
@@ -77,31 +60,11 @@ export function Auth({ db }: { db: SupabaseClient }) {
         GitHub으로 시작하기
       </button>
 
-      {msg && <p className="notice">{msg}</p>}
+      {msg && <p className="notice error">{msg}</p>}
 
-      {!showEmail ? (
-        <button className="link small" onClick={() => setShowEmail(true)}>
-          이메일로 로그인
-        </button>
-      ) : (
-        <form onSubmit={submit} className="stack email-form">
-          <input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <input
-            type="password"
-            placeholder="비밀번호 (6자 이상)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
-          <button className="primary" disabled={busy}>
-            {mode === 'signin' ? '이메일로 로그인' : '이메일로 회원가입'}
-          </button>
-          <button type="button" className="link small" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
-            {mode === 'signin' ? '이메일로 회원가입' : '이미 계정이 있어요. 로그인'}
-          </button>
-        </form>
-      )}
+      <p className="muted small auth-note">
+        GitHub 계정으로 가입과 로그인이 함께 돼요. 처음이면 자동으로 가입됩니다.
+      </p>
     </div>
   );
 }

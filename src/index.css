@@ -319,7 +319,6 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
 }
 .github-btn:hover:not(:disabled) { background: #32383f; border-color: #32383f; }
 @media (prefers-color-scheme: dark) { .github-btn { background: #f0f3f6; color: #1f2328; border-color: #f0f3f6; } .github-btn:hover:not(:disabled) { background: #dfe3e8; } }
-.email-form { padding: 14px; border: 1px solid var(--border); border-radius: 10px; }
 
 /* ─── v7: 마인드맵 ─── */
 :root {
@@ -408,3 +407,4 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
   .mm-actions .row > * { flex: none; }
   .mm-note-select { max-width: 150px; }
 }
+.auth-note { text-align: center; }
