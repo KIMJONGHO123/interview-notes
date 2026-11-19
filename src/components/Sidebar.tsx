@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Card, Note } from '../types';
+import { Logo } from './Logo';
 
 export type Tab = 'notes' | 'maps' | 'list' | 'review' | 'import';
 
@@ -52,7 +53,10 @@ export function Sidebar({ tab, notes, cards, mapCount, selectedNoteId, onTab, on
   return (
     <aside className="sidebar">
       <div className="sb-head">
-        <span className="sb-title">면접 노트</span>
+        <span className="sb-title">
+          <Logo size={24} />
+          면접노트
+        </span>
         <span className="spacer" />
         <button className="icon-btn" title="사이드바 닫기" onClick={onHide}>
           ⟨⟨

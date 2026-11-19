@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PrivacyModal } from './Privacy';
+import { Logo } from './Logo';
 
 /** OAuth 실패 시 Supabase 가 주소에 붙여 보내는 오류 메시지 */
 function readOAuthError(): string | null {
@@ -36,7 +37,10 @@ export function Auth({ db }: { db: SupabaseClient }) {
   return (
     <div className="auth">
       <div className="stack" style={{ gap: 6 }}>
-        <h1 className="auth-title">면접 노트</h1>
+        <h1 className="auth-title">
+          <Logo size={44} />
+          면접노트
+        </h1>
         <p className="muted">개념을 이해하고, 면접처럼 말해보는 공부 도구</p>
       </div>
 
