@@ -408,3 +408,31 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; paddin
   .mm-note-select { max-width: 150px; }
 }
 .auth-note { text-align: center; }
+
+/* ─── v8: 개념(기초·심화) / 면접, 말하기 시간, 타이머 ─── */
+.level.basic { color: var(--high); border-color: color-mix(in srgb, var(--high) 50%, var(--border)); }
+.level.advanced { color: var(--mm-4); border-color: color-mix(in srgb, var(--mm-4) 50%, var(--border)); }
+.level.interview { color: var(--accent); border-color: var(--accent); }
+.speak-tag { flex: none; padding-top: 2px; }
+
+.speak, .timer { display: flex; flex-direction: column; gap: 4px; }
+.speak-msg { color: var(--muted); }
+.speak.warn .speak-msg, .timer.warn .timer-num { color: var(--mid); }
+.speak.over .speak-msg, .timer.over .timer-num { color: var(--low); }
+.speak-bar, .timer-bar { position: relative; height: 6px; border-radius: 3px; background: var(--border); overflow: visible; }
+.speak-bar > div, .timer-bar > div { height: 100%; border-radius: 3px; background: var(--high); transition: width 0.2s; }
+.speak.warn .speak-bar > div, .timer.warn .timer-bar > div { background: var(--mid); }
+.speak.over .speak-bar > div, .timer.over .timer-bar > div { background: var(--low); }
+.speak-bar > i, .timer-bar > i { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--muted); border-radius: 1px; }
+
+.timer { flex-direction: row; align-items: center; gap: 10px; }
+.timer .timer-bar { flex: 1; }
+.timer-num { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 1.15rem; min-width: 72px; color: var(--high); }
+.timer-result { font-weight: 600; }
+.timer-result.ok { color: var(--high); } .timer-result.warn { color: var(--mid); } .timer-result.over { color: var(--low); }
+
+.mode-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode-pick button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; text-align: left; white-space: normal; border-radius: 12px; }
+.mode-pick button b { font-size: 1.02rem; }
+.mode-pick button.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+@media (max-width: 520px) { .mode-pick { grid-template-columns: 1fr; } }

@@ -264,3 +264,7 @@ create trigger mindmaps_storage_limit before insert or update on public.mindmaps
 
 revoke execute on function public.mindmap_bytes(public.mindmaps), public.enforce_mindmap_limit() from public, anon;
 grant execute on function public.mindmap_bytes(public.mindmaps) to authenticated;
+
+-- ─────────────────────────────── v6: 카드 종류 = 개념(기초 basic / 심화 advanced) + 면접(interview)
+alter table public.cards drop constraint if exists cards_level_check;
+alter table public.cards add constraint cards_level_check check (level in ('basic', 'advanced', 'interview'));

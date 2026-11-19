@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react';
-import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card, type Confidence, type Level, type Note } from '../types';
+import { CONFIDENCE_LABEL, isConcept, type Card, type Confidence, type Level, type Note } from '../types';
 import { CardItem } from './CardItem';
+
+/** 카드 종류 필터: 개념 전체 / 기초 / 심화 / 면접 */
+type KindFilter = 'concept' | Level;
+const KIND_CHIPS: [KindFilter, string][] = [
+  ['concept', '📘 개념 전체'],
+  ['basic', '기초'],
+  ['advanced', '심화'],
+  ['interview', '🎤 면접'],
+];
+const matchKind = (f: KindFilter | null, l: Level) => !f || (f === 'concept' ? isConcept(l) : f === l);
 
 interface Props {
   cards: Card[];
@@ -14,7 +24,7 @@ export function CardList({ cards, notes, onEdit, onNew, onOpenNote }: Props) {
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState<string | null>(null);
   const [conf, setConf] = useState<Confidence | null>(null);
-  const [level, setLevel] = useState<Level | null>(null);
+  const [level, setLevel] = useState<KindFilter | null>(null);
 
   const noteTitle = useMemo(() => new Map(notes.map((n) => [n.id, n.title])), [notes]);
 
@@ -30,7 +40,7 @@ export function CardList({ cards, notes, onEdit, onNew, onOpenNote }: Props) {
       (c) =>
         (!tag || c.tags.includes(tag)) &&
         (!conf || c.confidence === conf) &&
-        (!level || c.level === level) &&
+        matchKind(level, c.level) &&
         (!q || [c.question, c.answer, c.project, ...c.followUps.flatMap((f) => [f.q, f.a])].some((s) => s.toLowerCase().includes(q))),
     );
   }, [cards, query, tag, conf, level]);
@@ -45,9 +55,9 @@ export function CardList({ cards, notes, onEdit, onNew, onOpenNote }: Props) {
       </div>
 
       <div className="chips">
-        {(['basic', 'interview'] as Level[]).map((l) => (
-          <button key={l} className={`chip ${level === l ? 'on' : ''}`} onClick={() => setLevel(level === l ? null : l)}>
-            {LEVEL_LABEL[l]}
+        {KIND_CHIPS.map(([k, label]) => (
+          <button key={k} className={`chip ${level === k ? 'on' : ''}`} onClick={() => setLevel(level === k ? null : k)}>
+            {label}
           </button>
         ))}
         <span className="divider" />

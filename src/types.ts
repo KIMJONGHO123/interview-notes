@@ -1,5 +1,6 @@
 export type Confidence = 'low' | 'mid' | 'high';
-export type Level = 'basic' | 'interview';
+/** 개념 카드: basic(기초) · advanced(심화) / 면접 카드: interview */
+export type Level = 'basic' | 'advanced' | 'interview';
 
 export interface FollowUp {
   q: string;
@@ -35,7 +36,19 @@ export interface Note {
 
 export const CONFIDENCE_LABEL: Record<Confidence, string> = { low: '하', mid: '중', high: '상' };
 export const CONFIDENCE_RANK: Record<Confidence, number> = { low: 0, mid: 1, high: 2 };
-export const LEVEL_LABEL: Record<Level, string> = { basic: '기초', interview: '면접' };
+export const LEVEL_LABEL: Record<Level, string> = { basic: '기초', advanced: '심화', interview: '면접' };
+export const LEVEL_FULL: Record<Level, string> = { basic: '📘 개념 · 기초', advanced: '📗 개념 · 심화', interview: '🎤 면접' };
+export const LEVEL_SHORT: Record<Level, string> = { basic: '📘 기초', advanced: '📗 심화', interview: '🎤 면접' };
+export const LEVEL_ORDER: Record<Level, number> = { basic: 0, advanced: 1, interview: 2 };
+export const isConcept = (l: Level) => l !== 'interview';
+
+/** 말하기 시간(초) 추정: 공백·기호 제외 글자를 초당 6자로 계산 (면접 답변 속도 기준) */
+export const SPEAK_CHARS_PER_SEC = 6;
+export const speakSeconds = (text: string) =>
+  Math.round(text.replace(/[\s.,!?·()[\]"'`~-]/g, '').length / SPEAK_CHARS_PER_SEC);
+/** 면접 답변 권장 시간 */
+export const INTERVIEW_TARGET_SEC = 30;
+export const formatSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 const nowIso = () => new Date().toISOString();
 

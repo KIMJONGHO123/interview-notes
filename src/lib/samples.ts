@@ -1,51 +1,65 @@
-const INTERVIEW_CARDS = `Q: 트랜잭션이란 무엇이고, ACID는 각각 무엇을 의미하나요?
-A: 트랜잭션은 더 이상 쪼갤 수 없는 작업 단위로, 전부 성공하거나 전부 실패해야 합니다.
-원자성은 전부 반영되거나 전부 취소되는 것, 일관성은 제약 조건을 지키는 올바른 상태를 유지하는 것,
-격리성은 동시에 실행되는 트랜잭션이 서로 간섭하지 않는 것, 지속성은 커밋된 결과가 장애 후에도 유지되는 것입니다.
-꼬리: 원자성은 DB가 어떻게 보장하나요? (Undo 로그로 롤백)
-꼬리: 지속성은 어떻게 보장하나요? (Redo 로그 / WAL을 먼저 디스크에 기록)
+const INTERVIEW_CARDS = `Q: 트랜잭션과 ACID에 대해 설명해 주세요.
+A: 트랜잭션은 여러 작업을 하나로 묶어 전부 성공하거나 전부 취소되게 하는 단위입니다. 이를 위해 원자성, 일관성, 격리성, 지속성을 보장하고, 계좌이체처럼 중간에 실패하면 안 되는 작업에 꼭 필요합니다.
+꼬리: 원자성은 DB가 어떻게 보장하나요? (Undo 로그에 변경 전 값을 남겨 두고 실패 시 되돌림)
+꼬리: 지속성은 어떻게 보장하나요? (커밋 전에 Redo 로그(WAL)를 디스크에 먼저 기록해 장애 후 복구)
 태그: 트랜잭션, DB
-자신감: 중
 난이도: 면접
 
-Q: 트랜잭션 격리 수준 4가지와 각각 어떤 문제를 막는지 설명해 주세요.
-A: READ UNCOMMITTED는 커밋 전 데이터도 읽어서 Dirty Read가 생깁니다.
-READ COMMITTED는 Dirty Read를 막지만 같은 조회 결과가 달라지는 Non-Repeatable Read가 생깁니다.
-REPEATABLE READ는 Non-Repeatable Read까지 막고, 표준상 Phantom Read는 생길 수 있습니다.
-SERIALIZABLE은 모두 막지만 동시성이 가장 낮습니다. MySQL InnoDB 기본은 REPEATABLE READ, PostgreSQL은 READ COMMITTED입니다.
-꼬리: MySQL REPEATABLE READ에서도 팬텀 리드가 생기나요? (일반 SELECT는 MVCC 스냅샷, 잠금 읽기는 넥스트 키 락으로 대부분 방지)
-꼬리: MVCC가 무엇인가요? (Undo 로그로 이전 버전을 보여줘 읽기와 쓰기가 서로 막지 않게 함)
+Q: 트랜잭션 격리 수준에 대해 설명해 주세요.
+A: 동시에 실행되는 트랜잭션이 서로의 데이터를 얼마나 볼 수 있는지 정하는 기준입니다. READ UNCOMMITTED부터 SERIALIZABLE까지 네 단계가 있고, 높을수록 안전하지만 동시성이 떨어집니다. MySQL은 기본으로 REPEATABLE READ를 씁니다.
+꼬리: 각 단계에서 막히는 문제는? (RC는 Dirty Read, RR은 Non-Repeatable Read까지, SERIALIZABLE은 Phantom Read까지 막음)
+꼬리: MySQL REPEATABLE READ에서 팬텀 리드가 생기나요? (일반 SELECT는 MVCC 스냅샷, 잠금 읽기는 넥스트 키 락으로 대부분 막힘)
+꼬리: 실무에서는 어떤 수준을 쓰나요? (대부분 기본값을 쓰고, 정합성이 중요한 구간만 락 등으로 보완)
 태그: 트랜잭션, DB, 격리수준
-자신감: 하
 난이도: 면접
 
 Q: 스프링 @Transactional은 어떻게 동작하나요?
-A: 스프링 AOP 프록시가 메서드 호출을 가로채서 트랜잭션을 시작하고, 정상 종료되면 커밋, 예외가 나면 롤백합니다.
-기본적으로 RuntimeException과 Error에서만 롤백하고, 체크 예외는 롤백하지 않아서 필요하면 rollbackFor를 지정합니다.
-꼬리: 같은 클래스 안에서 다른 @Transactional 메서드를 호출하면? (프록시를 거치지 않아 적용 안 됨 - self-invocation)
-꼬리: private 메서드에 붙이면? (프록시가 가로챌 수 없어 적용 안 됨)
-꼬리: readOnly = true는 어떤 효과가 있나요? (JPA 더티 체킹·플러시 생략, 읽기 전용 DB로 라우팅 가능)
+A: 스프링 AOP 프록시가 메서드 호출을 가로채 트랜잭션을 시작하고, 정상 종료면 커밋, 런타임 예외면 롤백합니다. 그래서 프록시를 거치지 않는 호출에는 적용되지 않는다는 점을 주의해야 합니다.
+꼬리: 같은 클래스 안에서 호출하면? (self-invocation이라 프록시를 거치지 않아 적용 안 됨, 클래스를 분리해서 해결)
+꼬리: 체크 예외가 나면 롤백되나요? (기본은 롤백 안 됨, rollbackFor로 지정)
+꼬리: readOnly = true의 효과는? (JPA 플러시와 더티 체킹 생략, 읽기 전용 DB로 라우팅 가능)
 태그: 트랜잭션, Spring
-자신감: 중
 난이도: 면접
 
-Q: 트랜잭션 전파 속성 중 REQUIRED와 REQUIRES_NEW의 차이는?
-A: REQUIRED는 기본값으로, 이미 트랜잭션이 있으면 참여하고 없으면 새로 만듭니다.
-REQUIRES_NEW는 기존 트랜잭션을 잠시 보류하고 항상 새 트랜잭션을 만들어서, 안쪽 결과가 바깥 롤백과 무관하게 따로 커밋·롤백됩니다.
-꼬리: REQUIRED에서 안쪽 메서드 예외를 바깥에서 catch하면? (rollback-only가 표시돼 커밋 시 UnexpectedRollbackException)
-꼬리: 실패 로그는 본 작업이 롤백돼도 남기고 싶다면? (로그 저장을 REQUIRES_NEW로 분리)
+Q: 트랜잭션 전파 속성 REQUIRED와 REQUIRES_NEW의 차이는?
+A: REQUIRED는 기존 트랜잭션에 참여하고, REQUIRES_NEW는 기존 것을 잠시 멈추고 새 트랜잭션을 만듭니다. 그래서 실패 로그처럼 본 작업이 롤백돼도 남겨야 하는 작업에 REQUIRES_NEW를 씁니다.
+꼬리: REQUIRED에서 안쪽 예외를 바깥에서 catch하면? (rollback-only가 표시돼 커밋 시 UnexpectedRollbackException 발생)
+꼬리: REQUIRES_NEW를 쓸 때 주의점은? (커넥션을 하나 더 쓰므로 커넥션 풀 고갈과 데드락 주의)
 태그: 트랜잭션, Spring
-자신감: 하
 난이도: 면접
 
-Q: 낙관적 락과 비관적 락의 차이와 언제 쓰는지 설명해 주세요.
-A: 비관적 락은 조회 시점에 SELECT ... FOR UPDATE로 미리 잠가 충돌을 막는 방식으로, 충돌이 잦을 때 적합합니다.
-낙관적 락은 버전 컬럼으로 수정 시점에 충돌을 감지하는 방식으로, 충돌이 드물 때 적합하고 실패하면 재시도 처리가 필요합니다.
-꼬리: JPA에서 낙관적 락은 어떻게 쓰나요? (@Version 필드, 충돌 시 OptimisticLockException)
-꼬리: 데드락은 어떻게 예방하나요? (잠금 순서 통일, 트랜잭션 짧게, 타임아웃)
+Q: 낙관적 락과 비관적 락은 언제 쓰나요?
+A: 충돌이 잦으면 조회 시점에 미리 잠그는 비관적 락, 충돌이 드물면 버전으로 수정 시점에 충돌을 감지하는 낙관적 락을 씁니다. 낙관적 락은 실패했을 때 재시도 처리가 필요합니다.
+꼬리: JPA에서 각각 어떻게 쓰나요? (낙관적은 @Version, 비관적은 @Lock(PESSIMISTIC_WRITE)로 SELECT ... FOR UPDATE)
+꼬리: 데드락은 어떻게 예방하나요? (잠금 순서 통일, 트랜잭션을 짧게, 락 타임아웃 설정)
 태그: 트랜잭션, DB, 동시성
-자신감: 하
 난이도: 면접`;
+
+const ADVANCED_CARDS = `Q: MVCC는 어떻게 동작하나요?
+A: 데이터를 수정할 때 이전 버전을 Undo 로그에 남겨 두고, 각 트랜잭션은 자기 스냅샷 기준으로 보이는 버전을 읽습니다.
+그래서 읽기는 쓰기를 기다리지 않고, 쓰기도 읽기를 막지 않아 동시성이 높아집니다.
+InnoDB는 각 행에 마지막으로 수정한 트랜잭션 ID와 Undo 로그 포인터를 두고, Read View로 어떤 버전이 보이는지 판단합니다.
+태그: 트랜잭션, DB, MVCC
+난이도: 심화
+
+Q: READ COMMITTED와 REPEATABLE READ에서 MVCC 스냅샷은 어떻게 다르게 만들어지나요?
+A: READ COMMITTED는 SELECT를 실행할 때마다 새 Read View를 만들어서, 그 사이 다른 트랜잭션이 커밋한 변경이 보입니다.
+REPEATABLE READ는 트랜잭션의 첫 SELECT 시점에 만든 Read View를 끝까지 재사용해서, 같은 조회를 반복해도 결과가 유지됩니다.
+태그: 트랜잭션, DB, MVCC, 격리수준
+난이도: 심화
+
+Q: InnoDB의 넥스트 키 락은 무엇이고 왜 필요한가요?
+A: 레코드 락과 그 앞의 간격(갭)을 함께 잠그는 락입니다.
+잠금 읽기(SELECT ... FOR UPDATE)나 수정 시 조건 범위 사이에 새 행이 끼어드는 것을 막아, REPEATABLE READ에서도 팬텀 리드를 방지합니다.
+대신 잠그는 범위가 넓어지면 동시성이 떨어지고 데드락이 생기기 쉽습니다.
+태그: 트랜잭션, DB, 락
+난이도: 심화
+
+Q: 커밋된 데이터는 장애가 나도 어떻게 살아남나요?
+A: 데이터 페이지를 바로 디스크에 쓰는 대신, 변경 내용을 Redo 로그에 먼저 순차적으로 기록하고 그 로그가 디스크에 저장되면 커밋 완료로 봅니다(Write-Ahead Logging).
+장애 후 재시작하면 Redo 로그를 재생해 커밋된 변경을 복구하고, Undo 로그로 커밋되지 않은 변경은 되돌립니다.
+태그: 트랜잭션, DB
+난이도: 심화`;
 
 const CONCEPT_NOTE = `# 트랜잭션 기초
 
@@ -140,7 +154,7 @@ A: 동시에 처리할 수 있는 트랜잭션이 줄어 성능이 크게 떨어
 자신감: 하`;
 
 /** 개념 노트 + 카드 (개념 탭 예시) */
-export const SAMPLE_CONCEPT = `${CONCEPT_NOTE}\n\n===카드===\n${BASIC_CARDS}\n\n${INTERVIEW_CARDS}`;
+export const SAMPLE_CONCEPT = `${CONCEPT_NOTE}\n\n===카드===\n${BASIC_CARDS}\n\n${ADVANCED_CARDS}\n\n${INTERVIEW_CARDS}`;
 
 /** 카드만 (가져오기 탭 예시) */
-export const SAMPLE_TEXT = `${BASIC_CARDS}\n\n${INTERVIEW_CARDS}`;
+export const SAMPLE_TEXT = `${BASIC_CARDS}\n\n${ADVANCED_CARDS}\n\n${INTERVIEW_CARDS}`;

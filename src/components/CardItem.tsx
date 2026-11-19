@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CONFIDENCE_LABEL, LEVEL_LABEL, type Card } from '../types';
+import { CONFIDENCE_LABEL, LEVEL_SHORT, formatSec, speakSeconds, type Card } from '../types';
 import { FollowUpList } from './FollowUpList';
 
 interface Props {
@@ -18,9 +18,14 @@ export function CardItem({ card: c, noteTitle, onEdit, onOpenNote }: Props) {
           {CONFIDENCE_LABEL[c.confidence]}
         </span>
         <span className="q">
-          {c.level === 'basic' && <span className="level">{LEVEL_LABEL.basic}</span>}
+          <span className={`level ${c.level}`}>{LEVEL_SHORT[c.level]}</span>
           {c.question}
         </span>
+        {c.level === 'interview' && c.answer && (
+          <span className="muted small speak-tag" title="예상 말하기 시간">
+            🗣 {formatSec(speakSeconds(c.answer))}
+          </span>
+        )}
         <span className="caret">{open ? '▴' : '▾'}</span>
       </div>
       {open && (

@@ -8,7 +8,7 @@ import { newCard, newNote, type Card, type Confidence, type MindMap, type Note }
 import { Auth } from './components/Auth';
 import { CardList } from './components/CardList';
 import { CardEditor } from './components/CardEditor';
-import { Review } from './components/Review';
+import { Review, type ReviewMode } from './components/Review';
 import { ImportPanel } from './components/ImportPanel';
 import { NotesView } from './components/NotesView';
 import { MindMapsView } from './components/MindMapsView';
@@ -64,6 +64,7 @@ function Main({ email }: { email: string | null }) {
   const [tab, setTab] = useState<Tab>('notes');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [reviewNoteId, setReviewNoteId] = useState<string | null>(null);
+  const [reviewMode, setReviewMode] = useState<ReviewMode | null>(null);
   const [reviewKey, setReviewKey] = useState(0);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editingNote, setEditingNote] = useState<{ note: Note; isNew: boolean } | null>(null);
@@ -195,7 +196,8 @@ function Main({ email }: { email: string | null }) {
     setTab('notes');
   };
 
-  const reviewNote = (noteId: string | null) => {
+  const reviewNote = (noteId: string | null, mode: ReviewMode | null = null) => {
+    setReviewMode(mode);
     setReviewNoteId(noteId);
     setReviewKey((k) => k + 1);
     setTab('review');
@@ -318,7 +320,7 @@ function Main({ email }: { email: string | null }) {
         ) : tab === 'list' ? (
           <CardList cards={cards} notes={notes} onEdit={setEditingCard} onNew={() => setEditingCard(newCard())} onOpenNote={openNote} />
         ) : tab === 'review' ? (
-          <Review key={reviewKey} cards={cards} notes={notes} initialNoteId={reviewNoteId} onRate={rate} onOpenNote={openNote} />
+          <Review key={reviewKey} cards={cards} notes={notes} initialNoteId={reviewNoteId} initialMode={reviewMode} onRate={rate} onOpenNote={openNote} />
         ) : (
           <ImportPanel cards={cards} notes={notes} onImport={saveAll} />
         )}

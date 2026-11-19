@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { CONFIDENCE_RANK, type Card, type Note } from '../types';
 import { CardItem } from './CardItem';
 import { Markdown } from './Markdown';
+import type { ReviewMode } from './Review';
 
 interface Props {
   notes: Note[];
@@ -13,7 +14,7 @@ interface Props {
   onDelete: (note: Note) => void;
   onEditCard: (card: Card) => void;
   onNewCard: (noteId: string) => void;
-  onReview: (noteId: string) => void;
+  onReview: (noteId: string, mode: ReviewMode) => void;
 }
 
 export function NotesView(props: Props) {
@@ -111,11 +112,16 @@ function NoteDetail({ note, cards, onSelect, onEdit, onDelete, onEditCard, onNew
     () =>
       cards
         .filter((c) => c.noteId === note.id)
-        .sort((a, b) => (a.level === b.level ? CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence] : a.level === 'basic' ? -1 : 1)),
+        .sort((a, b) => CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence]),
     [cards, note.id],
   );
-  const basic = linked.filter((c) => c.level === 'basic');
-  const interview = linked.filter((c) => c.level === 'interview');
+  const groups: [string, Card[]][] = [
+    ['📘 개념 · 기초', linked.filter((c) => c.level === 'basic')],
+    ['📗 개념 · 심화', linked.filter((c) => c.level === 'advanced')],
+    ['🎤 면접 질문', linked.filter((c) => c.level === 'interview')],
+  ];
+  const conceptCount = groups[0][1].length + groups[1][1].length;
+  const interviewCount = groups[2][1].length;
 
   return (
     <div className="stack">
@@ -147,29 +153,27 @@ function NoteDetail({ note, cards, onSelect, onEdit, onDelete, onEditCard, onNew
           <h3>이 개념의 카드 {linked.length}개</h3>
           <span className="spacer" />
           <button onClick={() => onNewCard(note.id)}>+ 카드</button>
-          <button className="primary" onClick={() => onReview(note.id)} disabled={linked.length === 0}>
-            이 개념 복습
+        </div>
+        <div className="row">
+          <button className="grow" onClick={() => onReview(note.id, 'concept')} disabled={conceptCount === 0}>
+            📘 개념 복습 ({conceptCount})
+          </button>
+          <button className="primary grow" onClick={() => onReview(note.id, 'interview')} disabled={interviewCount === 0}>
+            🎤 면접 연습 ({interviewCount})
           </button>
         </div>
-        {basic.length > 0 && (
-          <>
-            <h4>기초 확인 문제</h4>
-            <ul className="cards">
-              {basic.map((c) => (
-                <CardItem key={c.id} card={c} onEdit={onEditCard} />
-              ))}
-            </ul>
-          </>
-        )}
-        {interview.length > 0 && (
-          <>
-            <h4>면접 질문</h4>
-            <ul className="cards">
-              {interview.map((c) => (
-                <CardItem key={c.id} card={c} onEdit={onEditCard} />
-              ))}
-            </ul>
-          </>
+        {groups.map(
+          ([title, list]) =>
+            list.length > 0 && (
+              <div key={title} className="stack" style={{ gap: 8 }}>
+                <h4>{title}</h4>
+                <ul className="cards">
+                  {list.map((c) => (
+                    <CardItem key={c.id} card={c} onEdit={onEditCard} />
+                  ))}
+                </ul>
+              </div>
+            ),
         )}
       </section>
     </div>

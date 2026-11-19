@@ -102,8 +102,8 @@ export function NoteEditor({ note, isNew, onSave, onCancel }: Props) {
 
         {parsed && (
           <p className="notice">
-            저장하면 카드 {parsed.cards.length}개가 함께 추가됩니다 (기초 {parsed.cards.filter((c) => c.level === 'basic').length} · 면접{' '}
-            {parsed.cards.filter((c) => c.level === 'interview').length}).
+            저장하면 카드 {parsed.cards.length}개가 함께 추가됩니다 (📘 기초 {parsed.cards.filter((c) => c.level === 'basic').length} · 📗 심화{' '}
+            {parsed.cards.filter((c) => c.level === 'advanced').length} · 🎤 면접 {parsed.cards.filter((c) => c.level === 'interview').length}).
           </p>
         )}
 
