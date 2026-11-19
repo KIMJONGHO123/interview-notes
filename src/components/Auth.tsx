@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { signInWithGitHub as startGitHub } from '../lib/supabase';
 import { PrivacyModal } from './Privacy';
 import { Logo } from './Logo';
 
@@ -10,12 +11,12 @@ function readOAuthError(): string | null {
 }
 
 const FEATURES = [
-  ['📖', '개념 노트', 'GPT로 정리한 내용을 붙여넣으면 노트와 카드가 한 번에 만들어져요'],
+  ['📖', '개념 노트', 'AI로 정리한 내용을 붙여넣으면 노트와 카드가 한 번에 만들어져요'],
   ['🔁', '면접식 복습', '질문만 보고 답한 뒤 확인, 꼬리질문까지 이어서 연습해요'],
   ['📊', '약한 곳 표시', '자신감 낮은 카드부터 나오고, 약한 개념이 한눈에 보여요'],
 ] as const;
 
-export function Auth({ db }: { db: SupabaseClient }) {
+export function Auth({ db, onDemo }: { db: SupabaseClient; onDemo: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(readOAuthError);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -23,11 +24,7 @@ export function Auth({ db }: { db: SupabaseClient }) {
   async function signInWithGitHub() {
     setBusy(true);
     setMsg(null);
-    const { error } = await db.auth.signInWithOAuth({
-      provider: 'github',
-      // 로그인 후 지금 사이트(배포 주소 또는 localhost)로 돌아오게
-      options: { redirectTo: window.location.origin },
-    });
+    const { error } = await startGitHub(db);
     if (error) {
       setBusy(false);
       setMsg(error.message);
@@ -64,6 +61,9 @@ export function Auth({ db }: { db: SupabaseClient }) {
           />
         </svg>
         GitHub으로 시작하기
+      </button>
+      <button className="demo-btn" onClick={onDemo} disabled={busy}>
+        로그인 없이 둘러보기
       </button>
 
       {msg && <p className="notice error">{msg}</p>}

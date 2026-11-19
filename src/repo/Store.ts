@@ -8,7 +8,8 @@ export interface Repository<T> {
 }
 
 export interface Store {
-  readonly kind: 'local' | 'supabase';
+  /** local: 환경변수 없는 개발용, demo: 로그인 없이 둘러보기, supabase: 계정 */
+  readonly kind: 'local' | 'demo' | 'supabase';
   cards: Repository<Card>;
   notes: Repository<Note>;
   mindmaps: Repository<MindMap>;

@@ -453,3 +453,14 @@ button.danger-solid:disabled { opacity: 0.45; }
 .foot-links button.link:hover { color: var(--text); }
 
 .logo { flex-shrink: 0; display: block; }
+
+/* ─── v10: 둘러보기 ─── */
+.demo-btn { width: 100%; padding: 12px; font-weight: 600; background: transparent; }
+.demo-bar {
+  display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap;
+  padding: 10px 16px; font-size: 0.88rem;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.demo-bar > span { flex: 1 1 260px; }
+.demo-bar button { padding: 6px 12px; font-size: 0.85rem; }

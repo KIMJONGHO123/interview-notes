@@ -27,7 +27,10 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
               <b>접속 기록</b>: 사이트 접속 시 IP 주소, 브라우저 정보 (호스팅 업체가 자동으로 처리)
             </li>
           </ul>
-          <p className="muted small">비밀번호는 받지 않아요. 로그인은 GitHub가 처리합니다.</p>
+          <p className="muted small">
+            비밀번호는 받지 않아요. 로그인은 GitHub가 처리합니다. 로그인 없이 둘러보기로 만든 자료는 이 브라우저에만 저장되고 서버로
+            보내지 않아요.
+          </p>
         </section>
 
         <section>

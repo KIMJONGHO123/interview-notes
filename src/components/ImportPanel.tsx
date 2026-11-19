@@ -58,7 +58,7 @@ export function ImportPanel({ cards, notes, mindmaps, onImport }: Props) {
         새 주제를 처음부터 공부할 땐 <b>개념</b> 탭의 "새 개념"에서 노트와 카드를 한 번에 만드는 걸 추천해요. 여기는 카드만 빠르게 추가할 때 씁니다.
       </p>
       <section className="stack">
-        <h3>1. GPT로 공부한 뒤, 이 프롬프트를 보내세요</h3>
+        <h3>1. AI로 공부한 뒤, 이 프롬프트를 보내세요</h3>
         <pre className="prompt">{CARD_PROMPT}</pre>
         <div className="row">
           <button onClick={copyPrompt}>{copied ? '복사됨!' : '프롬프트 복사'}</button>
@@ -66,7 +66,7 @@ export function ImportPanel({ cards, notes, mindmaps, onImport }: Props) {
       </section>
 
       <section className="stack">
-        <h3>2. GPT 답변을 그대로 붙여넣기</h3>
+        <h3>2. AI 답변을 그대로 붙여넣기</h3>
         <textarea
           rows={10}
           placeholder={'Q: 질문\nA: 답변\n꼬리: 꼬리질문\n태그: 트랜잭션, DB\n난이도: 면접'}

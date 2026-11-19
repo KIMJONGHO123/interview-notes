@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from './lib/supabase';
+import { signInWithGitHub, supabase } from './lib/supabase';
+import { createDemoStore, endDemo, isDemo, startDemo } from './lib/demo';
 import type { Store } from './repo/Store';
 import { createLocalStore } from './repo/localRepo';
 import { createSupabaseStore } from './repo/supabaseRepo';
@@ -33,6 +34,7 @@ function readHidden() {
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!supabase);
+  const [demo, setDemo] = useState(isDemo);
 
   useEffect(() => {
     if (!supabase) return;
@@ -44,8 +46,38 @@ export default function App() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // 로그인했으면 둘러보기 자료는 정리
+  useEffect(() => {
+    if (session && demo) {
+      endDemo();
+      setDemo(false);
+    }
+  }, [session, demo]);
+
   if (!authReady) return <div className="center muted">불러오는 중…</div>;
-  if (supabase && !session) return <Auth db={supabase} />;
+  if (supabase && !session) {
+    if (demo)
+      return (
+        <Main
+          key="demo"
+          email={null}
+          demo
+          onExitDemo={() => {
+            endDemo();
+            setDemo(false);
+          }}
+        />
+      );
+    return (
+      <Auth
+        db={supabase}
+        onDemo={async () => {
+          await startDemo();
+          setDemo(true);
+        }}
+      />
+    );
+  }
 
   // GitHub 로그인은 이메일이 비공개일 수 있어서 GitHub 아이디를 우선 표시
   const meta = session?.user.user_metadata as { user_name?: string } | undefined;
@@ -55,8 +87,18 @@ export default function App() {
 
 const byNewest = <T extends { createdAt: string }>(a: T, b: T) => b.createdAt.localeCompare(a.createdAt);
 
-function Main({ email }: { email: string | null }) {
-  const store: Store = useMemo(() => (supabase ? createSupabaseStore(supabase) : createLocalStore()), []);
+interface MainProps {
+  email: string | null;
+  /** 로그인 없이 둘러보기 */
+  demo?: boolean;
+  onExitDemo?: () => void;
+}
+
+function Main({ email, demo = false, onExitDemo }: MainProps) {
+  const store: Store = useMemo(
+    () => (demo ? createDemoStore() : supabase ? createSupabaseStore(supabase) : createLocalStore()),
+    [demo],
+  );
   const [cards, setCards] = useState<Card[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [mindmaps, setMindmaps] = useState<MindMap[]>([]);
@@ -241,7 +283,11 @@ function Main({ email }: { email: string | null }) {
   const footer = (
     <div className="stack" style={{ gap: 8 }}>
       {usageMeter}
-      {store.kind === 'local' ? (
+      {store.kind === 'demo' ? (
+        <span className="pill warn" title="로그인하지 않아 이 브라우저에만 저장됩니다">
+          둘러보기 · 이 브라우저에만 저장
+        </span>
+      ) : store.kind === 'local' ? (
         <span className="pill warn" title="Supabase 환경변수가 없어서 이 브라우저에만 저장됩니다">
           로컬 모드 · 이 브라우저에만 저장
         </span>
@@ -258,7 +304,7 @@ function Main({ email }: { email: string | null }) {
         <button className="link" onClick={() => setDialog('privacy')}>
           개인정보 안내
         </button>
-        {store.kind !== 'local' && (
+        {store.kind === 'supabase' && (
           <>
             <span className="sep">·</span>
             <button className="link" onClick={() => setDialog('delete')}>
@@ -293,6 +339,25 @@ function Main({ email }: { email: string | null }) {
       <div className="scrim" onClick={closeDrawer} />
 
       <div className="main-col">
+        {demo && (
+          <div className="demo-bar">
+            <span>
+              👀 <b>둘러보기 중</b> · 예시 자료로 자유롭게 써보세요. 여기서 만든 자료는 이 브라우저에만 있고 계정으로 옮겨지지 않아요.
+            </span>
+            <div className="row">
+              <button
+                className="primary"
+                onClick={() => {
+                  endDemo();
+                  if (supabase) signInWithGitHub(supabase);
+                }}
+              >
+                GitHub으로 시작하기
+              </button>
+              <button onClick={onExitDemo}>나가기</button>
+            </div>
+          </div>
+        )}
         <div className="topbar">
           <button className="icon-btn menu-btn" title="사이드바" onClick={toggleSidebar}>
             ☰

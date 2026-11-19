@@ -39,12 +39,16 @@ class LocalRepository<T extends { id: string }> implements Repository<T> {
   }
 }
 
-export function createLocalStore(): Store {
+/** ns 별로 다른 localStorage 키 사용 (study: 로컬 모드, demo: 둘러보기) */
+export const localKeys = (ns: string) => [`${ns}-cards:v1`, `${ns}-notes:v1`, `${ns}-mindmaps:v1`] as const;
+
+export function createLocalStore(ns = 'study', kind: 'local' | 'demo' = 'local'): Store {
+  const [cardKey, noteKey, mapKey] = localKeys(ns);
   return {
-    kind: 'local',
-    cards: new LocalRepository<Card>('study-cards:v1', normalizeCard),
-    notes: new LocalRepository<Note>('study-notes:v1'),
-    mindmaps: new LocalRepository<MindMap>('study-mindmaps:v1', normalizeMindMap),
+    kind,
+    cards: new LocalRepository<Card>(cardKey, normalizeCard),
+    notes: new LocalRepository<Note>(noteKey),
+    mindmaps: new LocalRepository<MindMap>(mapKey, normalizeMindMap),
     async usage() {
       const [cards, notes, maps] = await Promise.all([this.cards.list(), this.notes.list(), this.mindmaps.list()]);
       return (

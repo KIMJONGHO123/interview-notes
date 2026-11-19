@@ -8,8 +8,8 @@
 ## 쓰는 법
 
 ### 새 주제 공부 (개념 탭)
-1. **개념 → + 새 개념** → "개념 정리 프롬프트 복사" → 주제만 바꿔 GPT에 보내기
-2. GPT 답변 **전체**를 본문에 붙여넣고 저장
+1. **개념 → + 새 개념** → "개념 정리 프롬프트 복사" → 주제만 바꿔 AI(ChatGPT, Claude 등)에 보내기
+2. AI 답변 **전체**를 본문에 붙여넣고 저장
    - `===카드===` 위는 개념 노트(마크다운), 아래는 이 노트에 연결된 카드로 자동 생성
 3. 노트를 읽고 → **이 개념 복습**으로 기초 카드부터 확인
 4. 면접 카드는 **답변을 내 말로 고치고**, "내 프로젝트와 연결" 칸 채우기 (가장 중요)
@@ -80,7 +80,7 @@ src/
   repo/Store.ts            저장소 인터페이스 (cards, notes)
   repo/localRepo.ts        localStorage 구현
   repo/supabaseRepo.ts     Supabase 구현
-  lib/parse.ts             붙여넣기 → 노트/카드 변환, GPT 프롬프트
+  lib/parse.ts             붙여넣기 → 노트/카드 변환, AI 프롬프트
   lib/samples.ts           트랜잭션 예시 (개념 노트 + 기초·면접 카드)
   components/              NotesView, NoteEditor, CardList, CardEditor, Review, ImportPanel ...
 supabase/schema.sql        notes, cards 테이블 + RLS

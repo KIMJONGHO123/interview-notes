@@ -1,7 +1,7 @@
 import { newCard, splitFollowUp, type Card, type Confidence, type Level } from '../types';
 
 /**
- * GPT 정리 결과를 카드로 변환.
+ * AI 정리 결과를 카드로 변환.
  *
  * Q: 질문            (새 카드 시작)
  * A: 답변            (여러 줄 가능 - 접두어 없는 줄은 앞 항목에 이어붙임)

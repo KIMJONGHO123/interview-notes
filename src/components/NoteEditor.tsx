@@ -61,7 +61,7 @@ export function NoteEditor({ note, isNew, onSave, onCancel }: Props) {
         {isNew && (
           <div className="helper">
             <p>
-              <b>GPT로 개념 정리하기:</b> 프롬프트를 복사해 주제만 바꿔 보내고, 답변 전체를 아래 본문에 붙여넣으세요.
+              <b>AI로 개념 정리하기:</b> 프롬프트를 복사해 주제만 바꿔 보내고, 답변 전체를 아래 본문에 붙여넣으세요.
               <code>===카드===</code> 아래 부분은 이 노트에 연결된 카드로 자동 추가됩니다.
             </p>
             <div className="row">
