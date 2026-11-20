@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://interview-notes-wheat.vercel.app/sitemap.xml
