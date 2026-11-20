@@ -1,6 +1,6 @@
 /** 개인정보 처리방침 (로그인 화면·사이드바에서 열기) */
 const CONTACT_EMAIL = 'iikim098701@gmail.com';
-const EFFECTIVE_DATE = '2026년 11월 19일';
+const EFFECTIVE_DATE = '2026년 11월 21일';
 
 export function PrivacyModal({ onClose }: { onClose: () => void }) {
   return (
@@ -26,6 +26,10 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
             <li>
               <b>접속 기록</b>: 사이트 접속 시 IP 주소, 브라우저 정보 (호스팅 업체가 자동으로 처리)
             </li>
+            <li>
+              <b>방문 통계</b>: 본 페이지, 들어온 경로, 국가, 기기 종류. 쿠키를 쓰지 않고 개인을 알아볼 수 없는 형태로만 집계돼요
+              (Vercel Web Analytics)
+            </li>
           </ul>
           <p className="muted small">
             비밀번호는 받지 않아요. 로그인은 GitHub가 처리합니다. 로그인 없이 둘러보기로 만든 자료는 이 브라우저에만 저장되고 서버로
@@ -35,7 +39,10 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
 
         <section>
           <h3>어디에 쓰나요</h3>
-          <p>로그인과 내 자료를 저장·보여주는 데만 씁니다. 광고, 분석, 다른 서비스로 보내는 데 쓰지 않아요.</p>
+          <p>
+            로그인과 내 자료를 저장·보여주는 데 씁니다. 방문 통계는 몇 명이 어디서 들어왔는지 보고 서비스를 개선하는 데만 써요.
+            광고나 다른 서비스로 보내는 데 쓰지 않아요.
+          </p>
         </section>
 
         <section>
@@ -59,7 +66,7 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
               <b>Supabase Inc.</b> (미국 / 서버: 대한민국 서울): 계정 정보와 학습 자료 저장, 로그인 처리
             </li>
             <li>
-              <b>Vercel Inc.</b> (미국): 웹사이트 제공, 접속 기록 처리
+              <b>Vercel Inc.</b> (미국): 웹사이트 제공, 접속 기록 처리, 방문 통계
             </li>
           </ul>
           <p className="muted small">
