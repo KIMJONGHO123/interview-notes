@@ -1,6 +1,6 @@
 /** 개인정보 처리방침 (로그인 화면·사이드바에서 열기) */
 const CONTACT_EMAIL = 'iikim098701@gmail.com';
-const EFFECTIVE_DATE = '2026년 11월 21일';
+const EFFECTIVE_DATE = '2026년 11월 29일';
 
 export function PrivacyModal({ onClose }: { onClose: () => void }) {
   return (
@@ -18,7 +18,7 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
           <h3>어떤 정보를 저장하나요</h3>
           <ul>
             <li>
-              <b>GitHub 계정 정보</b>: GitHub 로그인 시 전달되는 아이디, 이름, 프로필 사진 주소, 이메일(GitHub에 공개·인증된 경우)
+              <b>로그인 계정 정보</b>: GitHub 또는 Google 로그인 시 전달되는 아이디, 이름, 프로필 사진 주소, 이메일. GitHub 저장소 등 다른 정보에는 접근하지 않아요
             </li>
             <li>
               <b>직접 작성한 학습 자료</b>: 개념 노트, 카드, 마인드맵, 복습 기록(자신감·마지막 복습 시각)
@@ -30,17 +30,21 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
               <b>방문 통계</b>: 본 페이지, 들어온 경로, 국가, 기기 종류. 쿠키를 쓰지 않고 개인을 알아볼 수 없는 형태로만 집계돼요
               (Vercel Web Analytics)
             </li>
+            <li>
+              <b>이용 기록</b>: 체험 문제 풀기, 둘러보기 시작, 로그인 버튼 클릭, 복습 완료 같은 버튼 사용 기록과 브라우저마다 만든 무작위
+              번호. 이름·이메일 같은 개인 정보는 담지 않아요
+            </li>
           </ul>
           <p className="muted small">
-            비밀번호는 받지 않아요. 로그인은 GitHub가 처리합니다. 로그인 없이 둘러보기로 만든 자료는 이 브라우저에만 저장되고 서버로
-            보내지 않아요.
+            비밀번호는 받지 않아요. 로그인은 GitHub·Google이 처리합니다. 로그인 없이 둘러보기로 만든 자료는 이 브라우저에만 저장되고, 가입하면 그때
+            내 계정으로 옮겨져요.
           </p>
         </section>
 
         <section>
           <h3>어디에 쓰나요</h3>
           <p>
-            로그인과 내 자료를 저장·보여주는 데 씁니다. 방문 통계는 몇 명이 어디서 들어왔는지 보고 서비스를 개선하는 데만 써요.
+            로그인과 내 자료를 저장·보여주는 데 씁니다. 방문 통계와 이용 기록은 몇 명이 어디서 들어와 어디까지 써 보는지 보고 서비스를 개선하는 데만 써요.
             광고나 다른 서비스로 보내는 데 쓰지 않아요.
           </p>
         </section>
@@ -51,7 +55,7 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
             탈퇴할 때까지 보관하고, <b>회원 탈퇴</b>를 하면 계정과 모든 자료를 바로 삭제해요. 삭제한 자료는 되돌릴 수 없어요.
           </p>
           <p className="muted small">
-            GitHub 쪽 연결도 끊으려면 GitHub → Settings → Applications → Authorized OAuth Apps 에서 이 앱의 권한을 취소하세요.
+            GitHub 쪽 연결도 끊으려면 GitHub → Settings → Applications → Authorized OAuth Apps, Google은 Google 계정 → 보안 → 서드파티 앱 연결에서 이 앱의 권한을 취소하세요.
           </p>
         </section>
 
@@ -63,7 +67,7 @@ export function PrivacyModal({ onClose }: { onClose: () => void }) {
           </p>
           <ul>
             <li>
-              <b>Supabase Inc.</b> (미국 / 서버: 대한민국 서울): 계정 정보와 학습 자료 저장, 로그인 처리
+              <b>Supabase Inc.</b> (미국 / 서버: 대한민국 서울): 계정 정보·학습 자료·이용 기록 저장, 로그인 처리
             </li>
             <li>
               <b>Vercel Inc.</b> (미국): 웹사이트 제공, 접속 기록 처리, 방문 통계

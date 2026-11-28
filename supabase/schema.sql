@@ -288,3 +288,25 @@ $$;
 
 revoke execute on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ─────────────────────────────── v8: 가입 흐름 측정 이벤트 (src/lib/track.ts)
+-- 누구나 넣을 수만 있고 읽을 수는 없음. 개인정보 없이 이벤트 이름과 브라우저별 무작위 id 만 저장.
+create table if not exists public.events (
+  id         bigint generated always as identity primary key,
+  name       text not null,
+  visitor    text,
+  detail     text,
+  created_at timestamptz not null default now(),
+  constraint events_name_check check (name in (
+    'landing_view', 'try_reveal', 'try_rate', 'demo_start', 'signup_click', 'review_done', 'signup_prompt_view', 'onboarded'
+  )),
+  constraint events_visitor_len check (char_length(visitor) <= 40),
+  constraint events_detail_len check (char_length(detail) <= 40)
+);
+create index if not exists events_created_at_idx on public.events (created_at);
+
+grant insert on public.events to anon, authenticated;
+revoke select, update, delete on public.events from anon, authenticated;
+alter table public.events enable row level security;
+drop policy if exists "events_insert_any" on public.events;
+create policy "events_insert_any" on public.events for insert to anon, authenticated with check (true);

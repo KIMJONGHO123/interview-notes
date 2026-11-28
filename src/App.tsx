@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { signInWithGitHub, supabase } from './lib/supabase';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
+import { onboard } from './lib/onboard';
+import { SignInButtons, SignupPrompt } from './components/SignIn';
 import { createDemoStore, endDemo, isDemo, startDemo } from './lib/demo';
 import type { Store } from './repo/Store';
 import { createLocalStore } from './repo/localRepo';
@@ -46,12 +48,9 @@ export default function App() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // 로그인했으면 둘러보기 자료는 정리
+  // 로그인했으면 둘러보기 화면은 끝. 자료는 Main 에서 계정으로 옮긴 뒤 지움 (lib/onboard)
   useEffect(() => {
-    if (session && demo) {
-      endDemo();
-      setDemo(false);
-    }
+    if (session && demo) setDemo(false);
   }, [session, demo]);
 
   if (!authReady) return <div className="center muted">불러오는 중…</div>;
@@ -70,7 +69,6 @@ export default function App() {
       );
     return (
       <Auth
-        db={supabase}
         onDemo={async () => {
           await startDemo();
           setDemo(true);
@@ -82,19 +80,21 @@ export default function App() {
   // GitHub 로그인은 이메일이 비공개일 수 있어서 GitHub 아이디를 우선 표시
   const meta = session?.user.user_metadata as { user_name?: string } | undefined;
   const label = meta?.user_name ? `@${meta.user_name}` : (session?.user.email ?? null);
-  return <Main key={session?.user.id ?? 'local'} email={label} />;
+  return <Main key={session?.user.id ?? 'local'} email={label} user={session?.user ?? null} />;
 }
 
 const byNewest = <T extends { createdAt: string }>(a: T, b: T) => b.createdAt.localeCompare(a.createdAt);
 
 interface MainProps {
   email: string | null;
+  /** 로그인한 계정 (첫 로그인 준비에 씀) */
+  user?: User | null;
   /** 로그인 없이 둘러보기 */
   demo?: boolean;
   onExitDemo?: () => void;
 }
 
-function Main({ email, demo = false, onExitDemo }: MainProps) {
+function Main({ email, user = null, demo = false, onExitDemo }: MainProps) {
   const store: Store = useMemo(
     () => (demo ? createDemoStore() : supabase ? createSupabaseStore(supabase) : createLocalStore()),
     [demo],
@@ -152,9 +152,26 @@ function Main({ email, demo = false, onExitDemo }: MainProps) {
     }
   }, [store]);
 
+  const [welcome, setWelcome] = useState<string | null>(null);
+
+  // 첫 로그인: 둘러보기 자료 옮기기 + 기본 문제 세트. 끝난 뒤 불러오기
   useEffect(() => {
-    reload();
-  }, [reload]);
+    const ready =
+      store.kind === 'supabase' && supabase && user
+        ? onboard(supabase, store, user).then(
+            (r) => {
+              if (!r) return;
+              const parts = [
+                r.movedNotes + r.movedCards > 0 && `둘러보기에서 쓰던 개념 ${r.movedNotes}개·카드 ${r.movedCards}개를 옮겼어요`,
+                r.starterCards > 0 && `CS 면접 기본 문제 ${r.starterCards}개(개념 ${r.starterNotes}개)를 준비했어요`,
+              ].filter(Boolean);
+              if (parts.length) setWelcome(`${parts.join(' · ')}. 복습 탭에서 바로 시작해 보세요.`);
+            },
+            (e) => setError(friendlyError(e)),
+          )
+        : Promise.resolve();
+    ready.then(reload);
+  }, [reload, store, user]);
 
   /** 실행 후 다시 불러오기. 성공 여부 반환 */
   const run = async (fn: () => Promise<void>) => {
@@ -342,18 +359,10 @@ function Main({ email, demo = false, onExitDemo }: MainProps) {
         {demo && (
           <div className="demo-bar">
             <span>
-              👀 <b>둘러보기 중</b> · 예시 자료로 자유롭게 써보세요. 여기서 만든 자료는 이 브라우저에만 있고 계정으로 옮겨지지 않아요.
+              👀 <b>둘러보기 중</b> · 가입하면 여기서 만든 자료와 복습 기록이 계정으로 그대로 옮겨져요.
             </span>
             <div className="row">
-              <button
-                className="primary"
-                onClick={() => {
-                  endDemo();
-                  if (supabase) signInWithGitHub(supabase);
-                }}
-              >
-                GitHub으로 시작하기
-              </button>
+              <SignInButtons source="demo_bar" compact />
               <button onClick={onExitDemo}>나가기</button>
             </div>
           </div>
@@ -369,6 +378,11 @@ function Main({ email, demo = false, onExitDemo }: MainProps) {
           {error && (
             <p className="notice error" onClick={() => setError(null)}>
               {error}
+            </p>
+          )}
+          {welcome && (
+            <p className="notice welcome" onClick={() => setWelcome(null)} title="눌러서 닫기">
+              🎉 {welcome}
             </p>
           )}
         {loading ? (
@@ -402,7 +416,16 @@ function Main({ email, demo = false, onExitDemo }: MainProps) {
         ) : tab === 'list' ? (
           <CardList cards={cards} notes={notes} onEdit={setEditingCard} onNew={() => setEditingCard(newCard())} onOpenNote={openNote} />
         ) : tab === 'review' ? (
-          <Review key={reviewKey} cards={cards} notes={notes} initialNoteId={reviewNoteId} initialMode={reviewMode} onRate={rate} onOpenNote={openNote} />
+          <Review
+            key={reviewKey}
+            cards={cards}
+            notes={notes}
+            initialNoteId={reviewNoteId}
+            initialMode={reviewMode}
+            onRate={rate}
+            onOpenNote={openNote}
+            doneExtra={demo && supabase ? <SignupPrompt /> : null}
+          />
         ) : (
           <ImportPanel cards={cards} notes={notes} mindmaps={mindmaps} onImport={saveAll} />
         )}

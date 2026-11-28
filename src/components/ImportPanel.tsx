@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { CARD_PROMPT, parseCards } from '../lib/parse';
 import { SAMPLE_TEXT } from '../lib/samples';
+import { buildStarter } from '../lib/starter';
 import { LEVEL_LABEL, type Card, type MindMap, type Note } from '../types';
 import { downloadBackup, parseBackup, prepareImport } from '../lib/backup';
 import { MAX_IMPORT_CARDS } from '../lib/limits';
@@ -28,6 +29,13 @@ export function ImportPanel({ cards, notes, mindmaps, onImport }: Props) {
       setMsg(`${preview.length}개 카드를 추가했어요.`);
       setText('');
     }
+  }
+
+  const starterLeft = useMemo(() => buildStarter(notes.map((n) => n.title)).notes.length, [notes]);
+
+  async function addStarter() {
+    const s = buildStarter(notes.map((n) => n.title));
+    if (await onImport(s.cards, s.notes)) setMsg(`기본 문제 세트에서 개념 ${s.notes.length}개, 카드 ${s.cards.length}개를 추가했어요.`);
   }
 
   async function copyPrompt() {
@@ -112,6 +120,18 @@ export function ImportPanel({ cards, notes, mindmaps, onImport }: Props) {
       </section>
 
       {msg && <p className="notice">{msg}</p>}
+
+      <section className="stack">
+        <h3>기본 문제 세트</h3>
+        <p className="muted small">
+          운영체제·네트워크·DB·자료구조·자바/스프링·웹 면접 질문과 개념 노트예요. 이미 같은 제목의 개념이 있으면 그 주제는 건너뛰어요.
+        </p>
+        <div className="row">
+          <button onClick={addStarter} disabled={starterLeft === 0}>
+            {starterLeft === 0 ? '기본 문제 세트를 이미 모두 가지고 있어요' : `기본 문제 세트 추가 (개념 ${starterLeft}개)`}
+          </button>
+        </div>
+      </section>
 
       <section className="stack">
         <h3>백업</h3>

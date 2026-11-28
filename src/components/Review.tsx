@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { track } from '../lib/track';
 import {
   CONFIDENCE_LABEL,
   CONFIDENCE_RANK,
@@ -22,6 +23,8 @@ export type ReviewMode = 'concept' | 'interview';
 /** 꼬리질문 답변 권장 시간 */
 const FOLLOW_UP_TARGET_SEC = 20;
 
+const RATE_HINT: Record<Confidence, string> = { low: '못 떠올렸어요', mid: '반쯤 맞았어요', high: '자신 있어요' };
+
 interface Props {
   cards: Card[];
   notes: Note[];
@@ -29,6 +32,8 @@ interface Props {
   initialMode: ReviewMode | null;
   onRate: (card: Card, confidence: Confidence) => void;
   onOpenNote: (noteId: string) => void;
+  /** 복습이 끝난 화면 아래에 덧붙일 내용 (둘러보기의 가입 권유) */
+  doneExtra?: ReactNode;
 }
 
 interface Filter {
@@ -70,7 +75,7 @@ function buildQueue(cards: Card[], f: Filter): Item[] {
     ]);
 }
 
-export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpenNote }: Props) {
+export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpenNote, doneExtra }: Props) {
   const [filter, setFilter] = useState<Filter>({
     mode: initialMode ?? 'concept',
     level: null,
@@ -87,6 +92,10 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
   const [done, setDone] = useState<Record<Confidence, number>>({ low: 0, mid: 0, high: 0 });
   /** 이번 세션에서 카드별 가장 낮은 평가 (꼬리질문에서 막히면 카드 자신감도 내려감) */
   const sessionMin = useRef(new Map<string, Confidence>());
+  /** 이번 세션에서 '중'·'하'로 답한 문제 (끝나고 다시 풀기) */
+  const weakItems = useRef<Item[]>([]);
+  /** 키보드 단축키가 부를 동작 (복습 중에만 채워짐) */
+  const keys = useRef<{ reveal?: () => void; rate?: (c: Confidence) => void } | null>(null);
 
   // 타이머: 질문이 나온 순간부터 "답 보기"를 누를 때까지
   const [startedAt, setStartedAt] = useState(0);
@@ -116,14 +125,35 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
     setShowNote(false);
   };
 
-  function start() {
-    setQueue(buildQueue(cards, filter));
+  // 스페이스/엔터: 답 보기 · 1/2/3: 하/중/상
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = keys.current;
+      const el = e.target as HTMLElement | null;
+      if (!k || e.ctrlKey || e.metaKey || e.altKey || el?.closest('input, textarea, select, button, [contenteditable]')) return;
+      if (k.reveal && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault();
+        k.reveal();
+      } else if (k.rate && ['1', '2', '3'].includes(e.key)) {
+        e.preventDefault();
+        k.rate((['low', 'mid', 'high'] as Confidence[])[Number(e.key) - 1]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  keys.current = null;
+
+  function begin(items: Item[]) {
+    setQueue(items);
     setIdx(0);
     setDone({ low: 0, mid: 0, high: 0 });
     sessionMin.current = new Map();
+    weakItems.current = [];
     times.current = [];
     startItem();
   }
+  const start = () => begin(buildQueue(cards, filter));
 
   // ───────────── 시작 화면
   if (!queue) {
@@ -215,20 +245,57 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
   // ───────────── 끝
   if (!item || !card || (item.fu !== null && !followUp)) {
     const avg = times.current.length ? Math.round(times.current.reduce((s, t) => s + t, 0) / times.current.length) : null;
+    const total = done.high + done.mid + done.low;
+    const pct = total ? Math.round((done.high / total) * 100) : 0;
+    const R = 42;
+    const C = 2 * Math.PI * R;
+    const retry = weakItems.current;
     return (
-      <div className="stack review-setup">
-        <h2>{interviewMode ? '면접 연습 끝!' : '복습 끝!'}</h2>
-        <p>
-          상 {done.high} · 중 {done.mid} · 하 {done.low}
-        </p>
-        {avg !== null && (
-          <p className="muted">
-            ⏱ 평균 답변 시간 {formatSec(avg)} (질문 {times.current.length}개)
-          </p>
-        )}
-        <button className="primary big" onClick={() => setQueue(null)}>
-          처음으로
-        </button>
+      <div className="done">
+        <div className="done-hero">
+          <div className="done-ring" role="img" aria-label={`자신감 상 ${pct}%`}>
+            <svg width="96" height="96" viewBox="0 0 96 96">
+              <circle className="track" cx="48" cy="48" r={R} fill="none" strokeWidth="8" />
+              <circle
+                className="bar"
+                cx="48"
+                cy="48"
+                r={R}
+                fill="none"
+                strokeWidth="8"
+                strokeDasharray={C}
+                strokeDashoffset={C * (1 - pct / 100)}
+              />
+            </svg>
+            <b>{pct}%</b>
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            <h2>{interviewMode ? '면접 연습 끝!' : '복습 끝!'}</h2>
+            <p className="muted">
+              {total}문제 중 {done.high}문제를 자신 있게 답했어요.
+              {avg !== null && ` 평균 답변 시간 ${formatSec(avg)}.`}
+            </p>
+          </div>
+        </div>
+        <div className="done-stats">
+          {(['high', 'mid', 'low'] as Confidence[]).map((c) => (
+            <div key={c} className={`done-stat conf-${c}`}>
+              <span className="muted small">{RATE_HINT[c]}</span>
+              <b>{done[c]}</b>
+            </div>
+          ))}
+        </div>
+        <div className="done-actions">
+          {retry.length > 0 && (
+            <button className="primary big" onClick={() => begin([...retry])}>
+              헷갈린 {retry.length}문제 다시 풀기
+            </button>
+          )}
+          <button className={retry.length > 0 ? 'big' : 'primary big'} onClick={() => setQueue(null)}>
+            처음으로
+          </button>
+        </div>
+        {doneExtra}
       </div>
     );
   }
@@ -255,24 +322,27 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
       sessionMin.current.set(card!.id, c);
       onRate(card!, c);
     }
+    if (c !== 'high') weakItems.current.push(item);
+    if (idx + 1 >= queue!.length) track('review_done', `${filter.mode}:${queue!.length}`);
     setDone((d) => ({ ...d, [c]: d[c] + 1 }));
     setIdx((i) => i + 1);
     startItem();
   }
 
+  keys.current = revealed ? { rate } : { reveal };
+
   return (
-    <div className="stack">
-      <div className="row">
-        <span className="muted small">
+    <div className="stack session">
+      <div className="session-top">
+        <span className="count">
           {idx + 1} / {queue.length}
         </span>
-        <span className="spacer" />
-        <button className="link" onClick={() => setQueue(null)}>
+        <div className="progress">
+          <div style={{ width: `${(idx / queue.length) * 100}%` }} />
+        </div>
+        <button className="link small" onClick={() => setQueue(null)}>
           그만하기
         </button>
-      </div>
-      <div className="progress">
-        <div style={{ width: `${(idx / queue.length) * 100}%` }} />
       </div>
 
       <div className="review-card">
@@ -306,7 +376,7 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
 
         {!revealed ? (
           <button className="primary big" onClick={reveal}>
-            {showTimer ? '다 말했어요 · 답 보기' : '답 보기'}
+            {showTimer ? '다 말했어요 · 답 보기' : '답 보기'} <kbd>Space</kbd>
           </button>
         ) : (
           <div className="stack">
@@ -358,9 +428,12 @@ export function Review({ cards, notes, initialNoteId, initialMode, onRate, onOpe
             )}
             <p className="muted small">얼마나 잘 답했나요?</p>
             <div className="rate">
-              {(['low', 'mid', 'high'] as Confidence[]).map((c) => (
+              {(['low', 'mid', 'high'] as Confidence[]).map((c, i) => (
                 <button key={c} className={`conf-${c}`} onClick={() => rate(c)}>
-                  {CONFIDENCE_LABEL[c]}
+                  <span>
+                    {CONFIDENCE_LABEL[c]} <kbd>{i + 1}</kbd>
+                  </span>
+                  <span className="rate-sub">{RATE_HINT[c]}</span>
                 </button>
               ))}
             </div>
