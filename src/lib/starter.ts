@@ -434,7 +434,12 @@ export function buildStarter(skipTitles: Iterable<string> = []): StarterSet {
     const note = newNote({ title, body, tags });
     notes.push(note);
     cards.push(
-      ...parseCards(cardText, { noteId: note.id }).map((c) => ({ ...c, tags: [...new Set([...c.tags, ...tags])] })),
+      // 예시 자료에 적힌 자신감은 무시하고, 아직 안 푼 문제라 모두 '중'으로 시작
+      ...parseCards(cardText, { noteId: note.id }).map((c) => ({
+        ...c,
+        confidence: 'mid' as const,
+        tags: [...new Set([...c.tags, ...tags])],
+      })),
     );
   }
   return { notes, cards };
