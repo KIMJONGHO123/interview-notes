@@ -428,10 +428,13 @@ export function buildStarter(skipTitles: Iterable<string> = []): StarterSet {
   const skip = new Set(skipTitles);
   const notes: Note[] = [];
   const cards: Card[] = [];
-  for (const { text, tags } of TOPICS) {
+  // 목록이 최신순이라, 앞 주제일수록 1초씩 늦은 시각을 줘서 공부 순서(TOPICS 순서)대로 보이게 함
+  const base = Date.now();
+  for (const [i, { text, tags }] of TOPICS.entries()) {
     const { title, body, cardText } = splitNote(text);
     if (skip.has(title)) continue;
-    const note = newNote({ title, body, tags });
+    const at = new Date(base - i * 1000).toISOString();
+    const note = newNote({ title, body, tags, createdAt: at, updatedAt: at });
     notes.push(note);
     cards.push(
       // 예시 자료에 적힌 자신감은 무시하고, 아직 안 푼 문제라 모두 '중'으로 시작
